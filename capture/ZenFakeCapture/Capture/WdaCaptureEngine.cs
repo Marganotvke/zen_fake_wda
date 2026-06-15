@@ -11,6 +11,8 @@ namespace ZenFakeCapture.Capture;
 /// </summary>
 internal sealed class WdaCaptureEngine : ICaptureEngine
 {
+    private const int MaxAffinityAttempts = 90;
+
     private static readonly ImageCodecInfo JpegCodec =
         ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
 
@@ -23,9 +25,11 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
     private Bitmap? _buffer;
     private Graphics? _bufferGraphics;
     private Bitmap? _nativeFrame;
+    private Graphics? _nativeGraphics;
     private Rectangle _monitorBounds;
     private Rectangle _scaledBounds;
     private IntPtr _affinityHwnd = IntPtr.Zero;
+    private int _affinityAttempts;
 
     public WdaCaptureEngine(int watchPid, int scalePercent, int jpegQuality)
     {
@@ -34,25 +38,18 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
         _jpegQuality = Math.Clamp(jpegQuality, 30, 95);
         _jpegParams = new EncoderParameters(1);
         _jpegParams.Param[0] = new EncoderParameter(Encoder.Quality, (long)_jpegQuality);
-
-        var hwnd = WindowHelper.FindMainWindowForProcess(_watchPid);
-        WdaActive = hwnd != IntPtr.Zero && WindowHelper.TryExcludeFromCapture(hwnd);
-        if (WdaActive)
-        {
-            _affinityHwnd = hwnd;
-            Console.WriteLine($"WDA_EXCLUDEFROMCAPTURE enabled on Zen HWND 0x{hwnd:X}");
-        }
     }
-
-    public bool WdaActive { get; }
 
     public string ModeName => "wda";
 
     public bool IsPaused { get; private set; }
 
+    /// <summary>True when WDA cannot be applied; Program should recreate with hole-buffer.</summary>
+    public bool FallbackRequested { get; private set; }
+
     public byte[]? CaptureFrame()
     {
-        if (!WdaActive)
+        if (FallbackRequested)
         {
             return null;
         }
@@ -66,49 +63,63 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
             Math.Max(1, (int)(_monitorBounds.Height * scale))
         );
 
-        EnsureBuffers();
-
         var hwnd = WindowHelper.FindMainWindowForProcess(_watchPid);
-        if (hwnd == IntPtr.Zero)
+        if (hwnd == IntPtr.Zero || WindowHelper.IsWindowMinimized(hwnd))
         {
             IsPaused = true;
             return null;
         }
 
-        if (hwnd != _affinityHwnd)
+        if (!EnsureAffinity(hwnd))
         {
-            WindowHelper.ClearExcludeFromCapture(_affinityHwnd);
-            if (!WindowHelper.TryExcludeFromCapture(hwnd))
+            IsPaused = true;
+            _affinityAttempts++;
+            if (_affinityAttempts >= MaxAffinityAttempts)
             {
-                IsPaused = true;
-                return null;
+                FallbackRequested = true;
+                Console.WriteLine("WDA_EXCLUDEFROMCAPTURE failed after retries — requesting hole-buffer fallback");
             }
 
-            _affinityHwnd = hwnd;
-        }
-
-        if (WindowHelper.IsWindowMinimized(hwnd))
-        {
-            IsPaused = true;
             return null;
         }
 
+        _affinityAttempts = 0;
         IsPaused = false;
+        EnsureBuffers();
 
-        using (var g = Graphics.FromImage(_nativeFrame!))
-        {
-            g.CopyFromScreen(
-                _monitorBounds.Left,
-                _monitorBounds.Top,
-                0,
-                0,
-                _monitorBounds.Size,
-                CopyPixelOperation.SourceCopy
-            );
-        }
+        _nativeGraphics!.CopyFromScreen(
+            _monitorBounds.Left,
+            _monitorBounds.Top,
+            0,
+            0,
+            _monitorBounds.Size,
+            CopyPixelOperation.SourceCopy
+        );
 
         _bufferGraphics!.DrawImage(_nativeFrame, _scaledBounds);
         return EncodeJpeg(_buffer!);
+    }
+
+    private bool EnsureAffinity(IntPtr hwnd)
+    {
+        if (_affinityHwnd != IntPtr.Zero && hwnd == _affinityHwnd)
+        {
+            return true;
+        }
+
+        if (!WindowHelper.TryExcludeFromCapture(hwnd))
+        {
+            return false;
+        }
+
+        if (_affinityHwnd != IntPtr.Zero && _affinityHwnd != hwnd)
+        {
+            WindowHelper.ClearExcludeFromCapture(_affinityHwnd);
+        }
+
+        _affinityHwnd = hwnd;
+        Console.WriteLine($"WDA_EXCLUDEFROMCAPTURE enabled on Zen HWND 0x{hwnd:X}");
+        return true;
     }
 
     private void EnsureBuffers()
@@ -124,10 +135,12 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
         }
 
         _bufferGraphics?.Dispose();
+        _nativeGraphics?.Dispose();
         _buffer?.Dispose();
         _nativeFrame?.Dispose();
 
         _nativeFrame = new Bitmap(_monitorBounds.Width, _monitorBounds.Height, PixelFormat.Format32bppArgb);
+        _nativeGraphics = Graphics.FromImage(_nativeFrame);
         _buffer = new Bitmap(_scaledBounds.Width, _scaledBounds.Height, PixelFormat.Format32bppArgb);
         _bufferGraphics = Graphics.FromImage(_buffer);
         _bufferGraphics.InterpolationMode = InterpolationMode.Bilinear;
@@ -146,6 +159,7 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
         WindowHelper.ClearExcludeFromCapture(_affinityHwnd);
         _affinityHwnd = IntPtr.Zero;
         _bufferGraphics?.Dispose();
+        _nativeGraphics?.Dispose();
         _buffer?.Dispose();
         _nativeFrame?.Dispose();
         _jpegParams.Dispose();

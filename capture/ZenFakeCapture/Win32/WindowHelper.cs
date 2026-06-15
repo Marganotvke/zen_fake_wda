@@ -119,7 +119,16 @@ internal static class WindowHelper
             return false;
         }
 
-        return SetWindowDisplayAffinity(hwnd, WdaExcludeFromCapture);
+        if (!SetWindowDisplayAffinity(hwnd, WdaExcludeFromCapture))
+        {
+            var error = Marshal.GetLastWin32Error();
+            Console.Error.WriteLine(
+                $"SetWindowDisplayAffinity failed for HWND 0x{hwnd:X} (error {error})"
+            );
+            return false;
+        }
+
+        return true;
     }
 
     internal static void ClearExcludeFromCapture(IntPtr hwnd)

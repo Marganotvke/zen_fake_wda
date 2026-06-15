@@ -95,6 +95,19 @@ internal static class Program
                 }
 
                 var jpeg = engine.CaptureFrame();
+                if (engine is WdaCaptureEngine { FallbackRequested: true })
+                {
+                    Console.WriteLine("Switching capture engine to hole-buffer mode");
+                    engine.Dispose();
+                    engine = CaptureEngineFactory.Create(
+                        options.WatchPid,
+                        scale,
+                        options.JpegQuality,
+                        preferWda: false
+                    );
+                    continue;
+                }
+
                 if (jpeg != null && jpeg.Length > 0)
                 {
                     frames.Set(jpeg);
