@@ -1,3 +1,47 @@
+# zen_fake_wda — WDA capture experiment fork
+
+Experimental fork of [zen_fake](https://github.com/Marganotvke/zen_fake) that uses **`SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)`** on the Zen window instead of hole-buffer strip compositing.
+
+## Why this fork?
+
+| Main repo (`zen_fake`) | This fork (`zen_fake_wda`) |
+|------------------------|----------------------------|
+| Hole-buffer strip capture | **WDA exclude + full monitor blit** |
+| Works without Win32 affinity | Requires Win10 2004+ (build 19041+) |
+| More CPU when maximized | Usually simpler/faster per frame |
+| No HWND affinity side effects | Sets/clears WDA on Zen HWND |
+
+If `WDA_EXCLUDEFROMCAPTURE` fails on Zen's HWND, the companion **automatically falls back** to hole-buffer capture (same as main repo).
+
+## Sine sideload
+
+```
+Marganotvke/zen_fake_wda/theme
+```
+
+## Desktop capture
+
+```powershell
+cd scripts\windows
+.\install-capture.ps1
+```
+
+`index.js` spawns the companion with `--wda` (default). To force hole-buffer:
+
+```text
+ZenFakeCapture.exe ... --hole-buffer
+```
+
+## Win10 spike checklist (WDA-specific)
+
+- [ ] Companion log shows `mode=wda` (not `hole-buffer`)
+- [ ] Desktop visible through Zen chrome without mirror artifacts
+- [ ] Zen still visible on physical monitor (WDA excludes from capture only)
+- [ ] Companion exit clears WDA affinity (no stuck exclude state)
+- [ ] Screen share / OBS still sees Zen normally on monitor, excluded from our capture
+
+---
+
 # Zen Fake Transparency — mod v0.4
 
 FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) on **Windows 10/11**. Paints a wallpaper, live HTML page, or **live desktop capture** behind semi-transparent chrome with optional acrylic blur — no native Mica required.
@@ -16,7 +60,7 @@ FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) 
 ### Sine sideload (required for live + desktop modes)
 
 1. Install [Sine](https://github.com/CosmoCreeper/Sine) and [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig); restart Zen.
-2. Sine settings → sideload: `Marganotvke/zen_fake/theme`
+2. Sine settings → sideload: `Marganotvke/zen_fake_wda/theme`
 3. On Windows, run `scripts/windows/sync-wallpaper.ps1` for static/live wallpaper prefs.
 4. For desktop capture, run once: `scripts/windows/install-capture.ps1`
 5. Enable **Fake Transparency**; choose **Background mode** in mod settings.

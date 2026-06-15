@@ -37,12 +37,17 @@ internal static class Program
         var scale = prefs.GetInt(PrefScale, options.CaptureScalePercent);
         var frameIntervalMs = Math.Max(1000 / Math.Max(1, fps), 16);
 
-        HoleBufferEngine? engine = new(options.WatchPid, scale, options.JpegQuality);
+        ICaptureEngine? engine = CaptureEngineFactory.Create(
+            options.WatchPid,
+            scale,
+            options.JpegQuality,
+            options.UseWda
+        );
         var frames = new FrameBuffer();
         using var cts = new CancellationTokenSource();
 
         Console.WriteLine(
-            $"ZenFakeCapture pid={Environment.ProcessId} watch={options.WatchPid} scale={scale}% fps={fps}"
+            $"ZenFakeCapture pid={Environment.ProcessId} watch={options.WatchPid} mode={engine.ModeName} scale={scale}% fps={fps}"
         );
 
         var server = new MjpegServer(
@@ -79,12 +84,17 @@ internal static class Program
                     if (newScale != scale)
                     {
                         scale = newScale;
-                        engine?.Dispose();
-                        engine = new HoleBufferEngine(options.WatchPid, scale, options.JpegQuality);
+                        engine.Dispose();
+                        engine = CaptureEngineFactory.Create(
+                            options.WatchPid,
+                            scale,
+                            options.JpegQuality,
+                            options.UseWda
+                        );
                     }
                 }
 
-                var jpeg = engine!.CaptureFrame();
+                var jpeg = engine.CaptureFrame();
                 if (jpeg != null && jpeg.Length > 0)
                 {
                     frames.Set(jpeg);
@@ -121,7 +131,7 @@ internal static class Program
             // expected on cancel
         }
 
-        engine?.Dispose();
+        engine.Dispose();
         server.Dispose();
         return 0;
     }

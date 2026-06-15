@@ -238,6 +238,7 @@
       String(fps),
       "--scale",
       String(scale),
+      "--wda",
     ];
 
     try {

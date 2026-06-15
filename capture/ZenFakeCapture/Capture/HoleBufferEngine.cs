@@ -9,7 +9,7 @@ namespace ZenFakeCapture.Capture;
 /// Hole-buffer desktop capture at a unified scale.
 /// Copies only monitor strips outside the Zen window each frame (not full-screen).
 /// </summary>
-internal sealed class HoleBufferEngine : IDisposable
+internal sealed class HoleBufferEngine : ICaptureEngine
 {
     private static readonly ImageCodecInfo JpegCodec =
         ImageCodecInfo.GetImageEncoders().First(c => c.FormatID == ImageFormat.Jpeg.Guid);
@@ -39,6 +39,8 @@ internal sealed class HoleBufferEngine : IDisposable
 
     /// <summary>Skip capture when Zen is minimized; keeps last encoded frame.</summary>
     public bool IsPaused { get; private set; }
+
+    public string ModeName => "hole-buffer";
 
     public byte[]? CaptureFrame()
     {

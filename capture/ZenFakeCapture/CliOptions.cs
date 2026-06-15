@@ -10,6 +10,7 @@ internal sealed class CliOptions
     public int Fps { get; set; } = 15;
     public int CaptureScalePercent { get; set; } = 50;
     public int JpegQuality { get; set; } = 72;
+    public bool UseWda { get; set; } = true;
 
     public static CliOptions Parse(string[] args)
     {
@@ -43,6 +44,13 @@ internal sealed class CliOptions
                 case "--quality" when i + 1 < args.Length:
                     options.JpegQuality = int.Parse(args[++i]);
                     break;
+                case "--wda":
+                    options.UseWda = true;
+                    break;
+                case "--no-wda":
+                case "--hole-buffer":
+                    options.UseWda = false;
+                    break;
                 case "--help":
                 case "-h":
                     PrintHelp();
@@ -70,6 +78,11 @@ internal sealed class CliOptions
             Usage:
               ZenFakeCapture.exe --watch-pid <zen-pid> [--profile <path>] [--no-tray]
                 [--host 127.0.0.1] [--port 8765] [--fps 15] [--scale 50] [--quality 72]
+                [--wda] [--hole-buffer]
+
+            Capture modes:
+              --wda (default)  SetWindowDisplayAffinity WDA_EXCLUDEFROMCAPTURE + full monitor blit
+              --hole-buffer  Strip-based hole buffer (fallback if WDA fails)
 
             Endpoints:
               GET /stream   multipart/x-mixed-replace MJPEG

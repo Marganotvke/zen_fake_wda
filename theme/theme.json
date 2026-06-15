@@ -1,10 +1,10 @@
 {
   "id": "f4e8c2a1-9b3d-4e5f-a6c7-d8e9f0a1b2c3",
   "name": "Fake Transparency",
-  "description": "FlexFox-style fake transparency for Windows: wallpaper, live HTML, or live desktop capture behind frosted Zen chrome.",
-  "version": "0.4.0",
+  "description": "WDA desktop capture experiment: wallpaper, live HTML, or live desktop behind frosted Zen chrome.",
+  "version": "0.4.1-wda",
   "author": "Marganotvke",
-  "homepage": "https://github.com/Marganotvke/zen_fake",
+  "homepage": "https://github.com/Marganotvke/zen_fake_wda",
   "readme": "readme.md",
   "style": {
     "chrome": "chrome.css"
@@ -18,7 +18,7 @@
     }
   },
   "fork": ["zen"],
-  "tags": ["windows", "transparency", "wallpaper", "acrylic", "desktop-capture"],
+  "tags": ["windows", "transparency", "wallpaper", "acrylic", "desktop-capture", "wda"],
   "createdAt": "2026-06-15",
   "updatedAt": "2026-06-15"
 }

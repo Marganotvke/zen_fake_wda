@@ -47,6 +47,17 @@ Area under an unmoved window may stay wallpaper-seeded until the window moves.
 - **prefs.js:** companion polls file mtime at most every **5 s**, reads only `zen.fake_transparency.*` lines (no full-profile parse every frame).
 - **index.js:** ignores CSS-only pref changes; debounces resize (300 ms) to avoid companion restarts on every pixel of drag.
 
-## v0.4 capture backend
+## v0.4 capture backends
 
-Uses GDI `CopyFromScreen` with hole-buffer compositing. WGC upgrade path is reserved for v0.5 (lower latency, better multi-monitor).
+### WDA mode (default in this fork)
+
+1. Find Zen main HWND for `--watch-pid`
+2. `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` — Zen omitted from BitBlt/WGC captures
+3. Full primary-monitor `CopyFromScreen` at native res, scale to `capture_scale`, JPEG encode
+4. On exit, clear affinity (`WDA_NONE`)
+
+Requires **Windows 10 2004+**. If affinity fails (layered-window conflict, old Windows), auto-falls back to hole-buffer.
+
+### Hole-buffer mode (`--hole-buffer`)
+
+Same as [main zen_fake](https://github.com/Marganotvke/zen_fake): strip-only GDI compositing outside the Zen rect.

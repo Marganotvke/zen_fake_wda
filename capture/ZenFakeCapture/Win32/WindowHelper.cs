@@ -25,6 +25,12 @@ internal static class WindowHelper
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
+
+    internal const uint WdaNone = 0x00000000;
+    internal const uint WdaExcludeFromCapture = 0x00000011;
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct RECT
     {
@@ -104,5 +110,25 @@ internal static class WindowHelper
         {
             return false;
         }
+    }
+
+    internal static bool TryExcludeFromCapture(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        return SetWindowDisplayAffinity(hwnd, WdaExcludeFromCapture);
+    }
+
+    internal static void ClearExcludeFromCapture(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        SetWindowDisplayAffinity(hwnd, WdaNone);
     }
 }
