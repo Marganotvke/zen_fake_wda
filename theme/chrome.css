@@ -14,36 +14,28 @@
     --zf-wallpaper-align-x: center;
   }
 
-  @media -moz-pref("zen.fake_transparency.transparency_level", 0) {
-    :root {
-      --zf-mask-opacity: 0.69;
-      --zf-urlbar-opacity: 0.95;
-      --zf-panel-opacity: 0.75;
-    }
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-transparency_level="0"]) {
+    --zf-mask-opacity: 0.69;
+    --zf-urlbar-opacity: 0.95;
+    --zf-panel-opacity: 0.75;
   }
 
-  @media -moz-pref("zen.fake_transparency.transparency_level", 1) {
-    :root {
-      --zf-mask-opacity: 0.44;
-      --zf-urlbar-opacity: 0.85;
-      --zf-panel-opacity: 0.5;
-    }
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-transparency_level="1"]) {
+    --zf-mask-opacity: 0.44;
+    --zf-urlbar-opacity: 0.85;
+    --zf-panel-opacity: 0.5;
   }
 
-  @media -moz-pref("zen.fake_transparency.transparency_level", 3) {
-    :root {
-      --zf-mask-opacity: 0.31;
-      --zf-urlbar-opacity: 0.7;
-      --zf-panel-opacity: 0.35;
-    }
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-transparency_level="3"]) {
+    --zf-mask-opacity: 0.31;
+    --zf-urlbar-opacity: 0.7;
+    --zf-panel-opacity: 0.35;
   }
 
-  @media -moz-pref("zen.fake_transparency.transparency_level", 4) {
-    :root {
-      --zf-mask-opacity: 0.08;
-      --zf-urlbar-opacity: 0.5;
-      --zf-panel-opacity: 0.15;
-    }
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-transparency_level="4"]) {
+    --zf-mask-opacity: 0.08;
+    --zf-urlbar-opacity: 0.5;
+    --zf-panel-opacity: 0.15;
   }
 
   @media -moz-bool-pref: "zen.fake_transparency.acrylic_disabled") {
@@ -55,16 +47,12 @@
     }
   }
 
-  @media -moz-pref("zen.fake_transparency.wallpaper_align", "left") {
-    :root {
-      --zf-wallpaper-align-x: left;
-    }
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-wallpaper_align="left"]) {
+    --zf-wallpaper-align-x: left;
   }
 
-  @media -moz-pref("zen.fake_transparency.wallpaper_align", "right") {
-    :root {
-      --zf-wallpaper-align-x: right;
-    }
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-wallpaper_align="right"]) {
+    --zf-wallpaper-align-x: right;
   }
 
   /* Hide Zen's opaque gradient layer; wallpaper replaces it */
@@ -93,17 +81,23 @@
     background-image: none !important;
   }
 
-  /* Full-window wallpaper + tint (FlexFox body-layer pattern, adapted for Zen) */
+  /* Full-window wallpaper + tint (FlexFox layered background-image pattern) */
   #main-window {
-    background-color: light-dark(
-      rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
-      rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
-    ) !important;
-    background-image: var(--zen-fake_transparency-wallpaper_url, none) !important;
-    background-repeat: no-repeat !important;
-    background-position: var(--zf-wallpaper-align-x) top !important;
-    background-size: cover !important;
-    background-attachment: fixed !important;
+    background-image: linear-gradient(
+        light-dark(
+          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+        ),
+        light-dark(
+          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+        )
+      ),
+      var(--zen-fake_transparency-wallpaper_url, none) !important;
+    background-repeat: no-repeat, no-repeat !important;
+    background-position: var(--zf-wallpaper-align-x) top, var(--zf-wallpaper-align-x) top !important;
+    background-size: auto, cover !important;
+    background-attachment: scroll, fixed !important;
   }
 
   @media (-moz-bool-pref: "zen.fake_transparency.acrylic_blur") and
