@@ -7,6 +7,18 @@
     "disabledOn": ["macos", "linux"]
   },
   {
+    "property": "zen.fake_transparency.background_mode",
+    "label": "Background mode",
+    "type": "dropdown",
+    "defaultValue": "static",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "Static wallpaper (CSS)", "value": "static" },
+      { "label": "Live HTML/WebGL embed", "value": "live" },
+      { "label": "Live desktop capture", "value": "desktop" }
+    ]
+  },
+  {
     "property": "zen.fake_transparency.wallpaper_url",
     "label": "Wallpaper CSS url() — usually set by scripts/windows/sync-wallpaper.ps1",
     "type": "string",
@@ -15,7 +27,7 @@
   },
   {
     "property": "zen.fake_transparency.live_background_enabled",
-    "label": "Live HTML/WebGL background (requires Sine + fx-autoconfig)",
+    "label": "Live HTML/WebGL background (synced from background mode)",
     "type": "checkbox",
     "defaultValue": false,
     "disabledOn": ["macos", "linux"]
@@ -26,6 +38,65 @@
     "type": "string",
     "defaultValue": "",
     "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.desktop_capture_enabled",
+    "label": "Desktop capture (synced from background mode)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.capture_exe_path",
+    "label": "ZenFakeCapture.exe path (set by install-capture.ps1)",
+    "type": "string",
+    "defaultValue": "",
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.capture_helper_url",
+    "label": "Capture helper base URL",
+    "type": "string",
+    "defaultValue": "http://127.0.0.1:8765",
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.background_fps",
+    "label": "Background FPS (live capture + companion)",
+    "type": "dropdown",
+    "defaultValue": "15",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "10 fps", "value": "10" },
+      { "label": "15 fps — default", "value": "15" },
+      { "label": "24 fps", "value": "24" },
+      { "label": "30 fps", "value": "30" }
+    ]
+  },
+  {
+    "property": "zen.fake_transparency.capture_scale",
+    "label": "Capture resolution scale",
+    "type": "dropdown",
+    "defaultValue": "50",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "25%", "value": "25" },
+      { "label": "50% — default", "value": "50" },
+      { "label": "75%", "value": "75" },
+      { "label": "100%", "value": "100" }
+    ]
+  },
+  {
+    "property": "zen.fake_transparency.capture_blur",
+    "label": "Capture layer blur (CSS)",
+    "type": "dropdown",
+    "defaultValue": "24",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "12px", "value": "12" },
+      { "label": "24px — default", "value": "24" },
+      { "label": "36px", "value": "36" }
+    ]
   },
   {
     "property": "zen.fake_transparency.transparency_level",

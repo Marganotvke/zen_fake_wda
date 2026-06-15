@@ -39,16 +39,28 @@ def main() -> int:
 
     index_js = ROOT / "theme/index.js"
     if not index_js.exists():
-        ERRORS.append("theme/index.js missing (live background loader)")
+        ERRORS.append("theme/index.js missing (background controller)")
     else:
         index_src = index_js.read_text()
         for needle in (
             "zen-browser-background",
             "zen-fake-transparency-live-browser",
-            "zen.fake_transparency.live_background_enabled",
+            "zen-fake-transparency-capture-img",
+            "zen.fake_transparency.background_mode",
+            "zen.fake_transparency.desktop_capture_enabled",
+            "ZenFakeCapture",
+            "Subprocess",
         ):
             if needle not in index_src:
                 ERRORS.append(f"index.js missing reference: {needle}")
+
+    capture_csproj = ROOT / "capture/ZenFakeCapture/ZenFakeCapture.csproj"
+    if not capture_csproj.exists():
+        ERRORS.append("capture/ZenFakeCapture/ZenFakeCapture.csproj missing")
+    else:
+        csproj = capture_csproj.read_text()
+        if "net8.0-windows" not in csproj:
+            ERRORS.append("capture project must target net8.0-windows")
 
     if BROWSER_XHTML.exists():
         xhtml = BROWSER_XHTML.read_text()
@@ -58,6 +70,7 @@ def main() -> int:
             "navigator-toolbox",
             "tabbrowser-tabpanels",
             "zen-browser-background",
+            "zen-toolbar-background",
         ):
             if f'id="{id_}"' not in xhtml:
                 WARNINGS.append(f'id="{id_}" not found in browser.xhtml')
@@ -70,6 +83,17 @@ def main() -> int:
 
     if "#zen-fake-transparency-live-browser" not in css:
         ERRORS.append("CSS missing #zen-fake-transparency-live-browser live background styles")
+
+    if "#zen-fake-transparency-capture-img" not in css:
+        ERRORS.append("CSS missing #zen-fake-transparency-capture-img desktop capture styles")
+
+    for selector in (
+        "#zen-toolbar-background::before",
+        "#zen-toolbar-background::after",
+        "background-blend-mode: normal !important",
+    ):
+        if selector not in css:
+            ERRORS.append(f"CSS missing dynamic-mode theme isolation: {selector}")
 
     if re.search(
         r'-moz-pref\("zen\.fake_transparency\.transparency_level",\s*\d+\)',
@@ -85,8 +109,15 @@ def main() -> int:
 
     pref_props = {p["property"] for p in prefs}
     for required in (
+        "zen.fake_transparency.background_mode",
         "zen.fake_transparency.live_background_enabled",
         "zen.fake_transparency.live_background_url",
+        "zen.fake_transparency.desktop_capture_enabled",
+        "zen.fake_transparency.capture_exe_path",
+        "zen.fake_transparency.capture_helper_url",
+        "zen.fake_transparency.background_fps",
+        "zen.fake_transparency.capture_scale",
+        "zen.fake_transparency.capture_blur",
     ):
         if required not in pref_props:
             ERRORS.append(f"preferences.json missing {required}")
@@ -102,6 +133,14 @@ def main() -> int:
         if fn not in ps:
             ERRORS.append(f"sync-wallpaper.ps1 missing function {fn}")
 
+    install_ps = ROOT / "scripts/windows/install-capture.ps1"
+    if not install_ps.exists():
+        ERRORS.append("scripts/windows/install-capture.ps1 missing")
+    else:
+        install_src = install_ps.read_text()
+        if "capture_exe_path" not in install_src:
+            ERRORS.append("install-capture.ps1 must set capture_exe_path pref")
+
     live_window_ps = ROOT / "scripts/windows/sync-live-window.ps1"
     if not live_window_ps.exists():
         ERRORS.append("scripts/windows/sync-live-window.ps1 missing (WE playInWindow spike)")
@@ -114,6 +153,7 @@ def main() -> int:
         if p["type"] == "checkbox" and p["property"] not in css and p["property"] not in (
             "zen.fake_transparency.enabled",
             "zen.fake_transparency.live_background_enabled",
+            "zen.fake_transparency.desktop_capture_enabled",
         ):
             WARNINGS.append(f"checkbox pref not in CSS: {p['property']}")
 

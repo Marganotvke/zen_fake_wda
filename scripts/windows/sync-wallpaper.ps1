@@ -38,6 +38,7 @@ $PREF_WALLPAPER = "zen.fake_transparency.wallpaper_url"
 $PREF_ENABLED = "zen.fake_transparency.enabled"
 $PREF_LIVE_ENABLED = "zen.fake_transparency.live_background_enabled"
 $PREF_LIVE_URL = "zen.fake_transparency.live_background_url"
+$PREF_BACKGROUND_MODE = "zen.fake_transparency.background_mode"
 
 function Find-ZenProfile {
   param([string]$Explicit)
@@ -255,6 +256,7 @@ if ($livePath) {
   $liveUri = ConvertTo-FileUri -FilePath $livePath
   Set-ZenPref -PrefsFile $prefsFile -Name $PREF_LIVE_URL -Value $liveUri
   Set-ZenPref -PrefsFile $prefsFile -Name $PREF_LIVE_ENABLED -Value "true" -Type bool
+  Set-ZenPref -PrefsFile $prefsFile -Name $PREF_BACKGROUND_MODE -Value "live"
   Write-Host "Live background detected:"
   Write-Host "  HTML: $livePath"
   Write-Host "  Pref: $PREF_LIVE_URL = $liveUri"
@@ -262,6 +264,9 @@ if ($livePath) {
   Write-Host "  Note: requires Sine + fx-autoconfig for index.js. Most WE web wallpapers need WE APIs."
 } else {
   Set-ZenPref -PrefsFile $prefsFile -Name $PREF_LIVE_ENABLED -Value "false" -Type bool
+  if (-not (Select-String -Path $prefsFile -Pattern 'zen\.fake_transparency\.background_mode' -Quiet)) {
+    Set-ZenPref -PrefsFile $prefsFile -Name $PREF_BACKGROUND_MODE -Value "static"
+  }
 }
 
 if (Test-WallpaperUsableInCss -Path $wallpaperPath) {

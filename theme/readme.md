@@ -1,7 +1,32 @@
-Fake transparency for Zen on Windows (v0.3.0). Paints a synced wallpaper (static CSS or live HTML/WebGL via Sine) behind semi-transparent chrome (FlexFox-style), without native Mica.
+# Zen Fake Transparency (v0.4)
 
-- **Static:** `scripts/windows/sync-wallpaper.ps1` → `wallpaper_url` pref
-- **Live (Sine):** same script detects `index.html` → `live_background_url` + `index.js`
-- **WE scenes:** prototype `scripts/windows/sync-live-window.ps1` — see `docs/WINDOWS-WE-PLAYINWINDOW.md`
+Windows-only mod: static wallpaper, live HTML/WebGL embed, or **live desktop capture** behind frosted Zen chrome.
 
-Runtime caveats (`file://` restrictions, live-mode performance, fullscreen behavior, WE prototype limits): see root [`README.md`](../README.md#runtime-caveats).
+## Background modes
+
+| Mode | Setting | Requires |
+|------|---------|----------|
+| Static | Background mode → Static | CSS only (or Sine) |
+| Live embed | Background mode → Live HTML/WebGL | Sine + fx-autoconfig |
+| Desktop capture | Background mode → Live desktop capture | Sine + ZenFakeCapture.exe |
+
+Only one mode is active at a time. `index.js` syncs bool prefs for CSS gating.
+
+## Desktop capture setup
+
+1. Install Sine + fx-autoconfig; sideload `Marganotvke/zen_fake/theme`
+2. Run once:
+
+```powershell
+cd scripts\windows
+.\install-capture.ps1
+```
+
+3. Enable **Fake Transparency**; set **Background mode** to **Live desktop capture**
+4. Restart Zen — companion starts automatically; exits when Zen closes
+
+See [`capture/README.md`](../capture/README.md) for build details and spike checklist.
+
+## Theme color isolation
+
+Zen normally paints workspace accent gradients on `.zen-browser-generic-background` pseudo-elements (`background-blend-mode: screen`). In live/desktop modes, the mod suppresses all Zen theme layers (including `#zen-toolbar-background`) and applies only the mod frosted mask (`--zf-*`).

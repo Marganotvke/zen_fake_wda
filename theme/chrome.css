@@ -1,6 +1,7 @@
 /* Zen Fake Transparency — FlexFox-style wallpaper layer for Windows 10/11
  * Paints a wallpaper image behind transparent chrome with optional acrylic blur.
  * Target: Windows only (no native Mica required).
+ * v0.4: live embed, desktop capture, unified dynamic-mode theme isolation.
  */
 
 @media (-moz-platform: windows) and (-moz-bool-pref: "zen.fake_transparency.enabled") {
@@ -11,6 +12,7 @@
     --zf-urlbar-opacity: 0.75;
     --zf-panel-opacity: 0.4;
     --zf-blur: 26px;
+    --zf-capture-blur: 24px;
     --zf-wallpaper-align-x: center;
   }
 
@@ -38,12 +40,21 @@
     --zf-panel-opacity: 0.15;
   }
 
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-capture_blur="12"]) {
+    --zf-capture-blur: 12px;
+  }
+
+  body:has(#theme-Fake-Transparency[zen-fake_transparency-capture_blur="36"]) {
+    --zf-capture-blur: 36px;
+  }
+
   @media -moz-bool-pref: "zen.fake_transparency.acrylic_disabled") {
     :root {
       --zf-light-mask: 249, 249, 251;
       --zf-dark-mask: 30, 30, 47;
       --zf-mask-opacity: 0.74;
       --zf-blur: 0px;
+      --zf-capture-blur: 0px;
     }
   }
 
@@ -55,83 +66,25 @@
     --zf-wallpaper-align-x: right;
   }
 
-  /* Hide Zen's opaque gradient layer; wallpaper replaces it */
+  /* Hide Zen grain in all modes */
   .zen-browser-generic-background {
     & .zen-browser-grain {
       display: none !important;
     }
   }
 
-  @media (not (-moz-bool-pref: "zen.fake_transparency.live_background_enabled")) {
+  /* Static mode: hide Zen theme gradients; wallpaper on #main-window */
+  @media (not (-moz-bool-pref: "zen.fake_transparency.live_background_enabled")) and
+    (not (-moz-bool-pref: "zen.fake_transparency.desktop_capture_enabled")) {
     .zen-browser-generic-background {
       &::before,
       &::after {
         background: transparent !important;
         opacity: 0 !important;
+        background-blend-mode: normal !important;
       }
     }
-  }
 
-  /* Live HTML/WebGL embed (Sine index.js) */
-  @media (-moz-bool-pref: "zen.fake_transparency.live_background_enabled") {
-    #zen-browser-background {
-      position: absolute !important;
-      inset: 0 !important;
-      z-index: 0 !important;
-      overflow: clip !important;
-      pointer-events: none !important;
-    }
-
-    #zen-browser-background::before {
-      background: transparent !important;
-      opacity: 0 !important;
-    }
-
-    /* Tint overlay above live page, below chrome UI */
-    #zen-browser-background::after {
-      content: "" !important;
-      position: absolute !important;
-      inset: 0 !important;
-      z-index: 1 !important;
-      pointer-events: none !important;
-      opacity: 1 !important;
-      background: linear-gradient(
-        light-dark(
-          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
-          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
-        ),
-        light-dark(
-          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
-          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
-        )
-      ) !important;
-    }
-
-    #zen-fake-transparency-live-browser {
-      position: absolute !important;
-      inset: 0 !important;
-      min-width: 100% !important;
-      min-height: 100% !important;
-      pointer-events: none !important;
-      z-index: 0 !important;
-    }
-  }
-
-  #zen-main-app-wrapper {
-    background: transparent !important;
-  }
-
-  #navigator-toolbox {
-    --toolbox-bgcolor: transparent !important;
-    --toolbox-bgcolor-inactive: transparent !important;
-    --toolbox-background-color: transparent !important;
-    --toolbox-background-color-inactive: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
-  }
-
-  /* Full-window wallpaper + tint (FlexFox layered background-image pattern) */
-  @media (not (-moz-bool-pref: "zen.fake_transparency.live_background_enabled")) {
     #main-window {
       background-image: linear-gradient(
           light-dark(
@@ -151,10 +104,100 @@
     }
   }
 
-  @media (-moz-bool-pref: "zen.fake_transparency.live_background_enabled") {
+  /* Dynamic modes (live + desktop): suppress Zen accent gradient layers */
+  @media (-moz-bool-pref: "zen.fake_transparency.live_background_enabled"),
+    (-moz-bool-pref: "zen.fake_transparency.desktop_capture_enabled") {
+    .zen-browser-generic-background::before,
+    .zen-browser-generic-background::after,
+    #zen-browser-background::before,
+    #zen-browser-background::after,
+    #zen-toolbar-background::before,
+    #zen-toolbar-background::after {
+      background: transparent !important;
+      opacity: 0 !important;
+      background-blend-mode: normal !important;
+    }
+
+    #zen-browser-background,
+    #zen-toolbar-background {
+      --zen-main-browser-background: transparent !important;
+      --zen-main-browser-background-toolbar: transparent !important;
+      --zen-main-browser-background-old: transparent !important;
+      --zen-main-browser-background-toolbar-old: transparent !important;
+    }
+
+    #zen-browser-background {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 0 !important;
+      overflow: clip !important;
+      pointer-events: none !important;
+    }
+
+    /* Mod-controlled frosted tint only (not Zen accent gradient) */
+    #zen-browser-background::after {
+      content: "" !important;
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 1 !important;
+      pointer-events: none !important;
+      opacity: 1 !important;
+      background-blend-mode: normal !important;
+      background: linear-gradient(
+        light-dark(
+          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+        ),
+        light-dark(
+          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+        )
+      ) !important;
+    }
+
     #main-window {
       background-image: none !important;
     }
+  }
+
+  /* Live HTML/WebGL embed */
+  @media (-moz-bool-pref: "zen.fake_transparency.live_background_enabled") {
+    #zen-fake-transparency-live-browser {
+      position: absolute !important;
+      inset: 0 !important;
+      min-width: 100% !important;
+      min-height: 100% !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+    }
+  }
+
+  /* Desktop capture MJPEG */
+  @media (-moz-bool-pref: "zen.fake_transparency.desktop_capture_enabled") {
+    #zen-fake-transparency-capture-img {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+      contain: strict;
+      filter: blur(var(--zf-capture-blur)) saturate(110%);
+    }
+  }
+
+  #zen-main-app-wrapper {
+    background: transparent !important;
+  }
+
+  #navigator-toolbox {
+    --toolbox-bgcolor: transparent !important;
+    --toolbox-bgcolor-inactive: transparent !important;
+    --toolbox-background-color: transparent !important;
+    --toolbox-background-color-inactive: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
   }
 
   @media (-moz-bool-pref: "zen.fake_transparency.acrylic_blur") and
@@ -169,7 +212,7 @@
     }
   }
 
-  /* Keep UI above wallpaper layer */
+  /* Keep UI above wallpaper / dynamic background layer */
   #browser,
   #navigator-toolbox,
   #zen-main-app-wrapper {
@@ -205,17 +248,16 @@
       backdrop-filter: blur(var(--zf-blur)) saturate(140%);
     }
 
-    /* backdrop-filter needs clip-path on content browsers when content is transparent */
     browser:not(
       .devtools-toolbox-side-iframe,
       .devtools-toolbox-bottom-iframe,
-      #zen-fake-transparency-live-browser
+      #zen-fake-transparency-live-browser,
+      #zen-fake-transparency-capture-img
     ) {
       clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
     }
   }
 
-  /* Optional: show wallpaper through web content area */
   @media (-moz-bool-pref: "zen.fake_transparency.transparent_content") {
     #tabbrowser-tabpanels {
       background-color: transparent !important;
