@@ -108,9 +108,9 @@ internal sealed class MjpegServer : IDisposable
                 await Task.Delay(_frameIntervalMs(), _cts.Token);
             }
         }
-        catch (Exception ex) when (ex is HttpListenerException or IOException or ObjectDisposedException)
+        catch (Exception ex) when (ex is HttpListenerException or IOException or ObjectDisposedException or OperationCanceledException)
         {
-            // Client disconnected.
+            // Client disconnected or server shutting down.
         }
         finally
         {

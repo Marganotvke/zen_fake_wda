@@ -97,15 +97,16 @@
   }
 
   function resolveBackgroundMode() {
-    const mode = prefString(PREF_MODE, "");
-    if (mode === MODE_LIVE || mode === MODE_DESKTOP || mode === MODE_STATIC) {
-      return mode;
-    }
+    // Bool prefs gate CSS; check them first so JS matches what chrome.css shows.
     if (prefBool(PREF_DESKTOP_ENABLED, false)) {
       return MODE_DESKTOP;
     }
     if (prefBool(PREF_LIVE_ENABLED, false)) {
       return MODE_LIVE;
+    }
+    const mode = prefString(PREF_MODE, "");
+    if (mode === MODE_LIVE || mode === MODE_DESKTOP) {
+      return mode;
     }
     return MODE_STATIC;
   }
@@ -193,11 +194,13 @@
       () => {
         if (captureProcess === proc) {
           captureProcess = null;
+          scheduleRefresh();
         }
       },
       () => {
         if (captureProcess === proc) {
           captureProcess = null;
+          scheduleRefresh();
         }
       }
     );

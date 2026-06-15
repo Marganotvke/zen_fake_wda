@@ -172,12 +172,16 @@ internal sealed class HoleBufferEngine : IDisposable
             );
         }
 
-        _bufferGraphics!.DrawImage(_scratch, dstScaled);
+        // Draw only the captured strip — scratch may be larger from a prior frame.
+        var srcRect = new Rectangle(0, 0, srcNative.Width, srcNative.Height);
+        _bufferGraphics!.DrawImage(_scratch, dstScaled, srcRect, GraphicsUnit.Pixel);
     }
 
     private void EnsureScratch(int width, int height)
     {
-        if (_scratch != null && _scratch.Width >= width && _scratch.Height >= height)
+        if (_scratch != null &&
+            _scratch.Width == width &&
+            _scratch.Height == height)
         {
             return;
         }
