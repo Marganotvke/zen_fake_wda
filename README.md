@@ -1,6 +1,6 @@
 # zen_fake
 
-FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) on **Windows 10/11**. Paints a wallpaper image (or live HTML/WebGL page) behind semi-transparent chrome with optional acrylic blur — no native Mica required.
+FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) on **Windows 10/11** (mod version **0.3.0**). Paints a wallpaper image (or live HTML/WebGL page) behind semi-transparent chrome with optional acrylic blur — no native Mica required.
 
 ## What it does
 
@@ -108,8 +108,30 @@ Settings use `disabledOn: ["macos","linux"]` in `preferences.json`. CSS is gated
 - **Mod name:** keep `name: "Fake Transparency"` in `theme.json` — CSS uses `#theme-Fake-Transparency`.
 - **Not live desktop capture** — icons and windows behind Zen are not shown (except WE playInWindow prototype).
 - **Security:** live mode loads arbitrary URIs in a chrome `<browser>`; sync script defaults to local paths only.
+- **DWMBlurGlass:** only affects the native Windows title bar; this mod handles browser chrome separately.
 
-## Repository layout
+## Runtime caveats
+
+### Live mode (`index.js`)
+
+- **`file://` pages** may fail to load due to Firefox origin restrictions. If a synced WE `index.html` shows blank, try `privacy.file_unique_origin = true` in `about:config`, or host the page via local HTTP instead of `file://`.
+- **Performance:** live HTML/WebGL runs in the chrome process and adds GPU/CPU use. Disable **Live HTML/WebGL background** in mod settings to fall back to static CSS wallpaper.
+- **Fullscreen:** the live embed is removed while Zen is in fullscreen (`inFullscreen`); static tint/CSS behavior resumes until you exit fullscreen.
+- **WE web wallpapers:** most WE `index.html` assets expect WE-injected APIs (`window.wallpaper*`, property system, asset paths). Generic HTML/WebGL URLs work; typical WE web packs often do not — use `sync-live-window.ps1` instead.
+
+### WE `playInWindow` prototype (`sync-live-window.ps1`)
+
+Not production-ready. See [`docs/WINDOWS-WE-PLAYINWINDOW.md`](docs/WINDOWS-WE-PLAYINWINDOW.md) for details.
+
+- **Two apps** — Wallpaper Engine must stay running alongside Zen.
+- **No move/resize sync** — repositioning or resizing Zen desyncs the WE window until a watcher is added.
+- **Fragile window matching** — WE window title may not match `-playInWindow` on all builds; HWND discovery may need manual tuning.
+- **Multi-monitor / fullscreen** — not handled; alt-tab and focus behavior may be awkward.
+
+### Zen updates
+
+`#zen-browser-background` and related gradient hooks are internal Zen DOM. Pin the Zen version you tested when reporting issues.
+
 
 ```
 theme/              chrome.css, preferences.json, theme.json, index.js
@@ -120,7 +142,7 @@ install/            zen-themes.json snippet, user.js snippet
 
 ## Tested Zen version
 
-Pin your tested Zen build in issues/PRs when reporting bugs — `#zen-browser-background` is an internal DOM hook.
+No specific build is pinned yet — report issues with your Zen version. Internal hooks (`#zen-browser-background`, gradient layer) may break on Zen updates.
 
 ## License
 
