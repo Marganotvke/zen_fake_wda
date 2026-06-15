@@ -1,0 +1,182 @@
+/* Zen Fake Transparency — FlexFox-style wallpaper layer for Windows 10/11
+ * Paints a wallpaper image behind transparent chrome with optional acrylic blur.
+ * Target: Windows only (no native Mica required).
+ */
+
+@media (-moz-platform: windows) and (-moz-bool-pref: "zen.fake_transparency.enabled") {
+  :root {
+    --zf-light-mask: 255, 255, 255;
+    --zf-dark-mask: 0, 0, 0;
+    --zf-mask-opacity: 0.37;
+    --zf-urlbar-opacity: 0.75;
+    --zf-panel-opacity: 0.4;
+    --zf-blur: 26px;
+    --zf-wallpaper-align-x: center;
+  }
+
+  @media -moz-pref("zen.fake_transparency.transparency_level", 0) {
+    :root {
+      --zf-mask-opacity: 0.69;
+      --zf-urlbar-opacity: 0.95;
+      --zf-panel-opacity: 0.75;
+    }
+  }
+
+  @media -moz-pref("zen.fake_transparency.transparency_level", 1) {
+    :root {
+      --zf-mask-opacity: 0.44;
+      --zf-urlbar-opacity: 0.85;
+      --zf-panel-opacity: 0.5;
+    }
+  }
+
+  @media -moz-pref("zen.fake_transparency.transparency_level", 3) {
+    :root {
+      --zf-mask-opacity: 0.31;
+      --zf-urlbar-opacity: 0.7;
+      --zf-panel-opacity: 0.35;
+    }
+  }
+
+  @media -moz-pref("zen.fake_transparency.transparency_level", 4) {
+    :root {
+      --zf-mask-opacity: 0.08;
+      --zf-urlbar-opacity: 0.5;
+      --zf-panel-opacity: 0.15;
+    }
+  }
+
+  @media -moz-bool-pref: "zen.fake_transparency.acrylic_disabled") {
+    :root {
+      --zf-light-mask: 249, 249, 251;
+      --zf-dark-mask: 30, 30, 47;
+      --zf-mask-opacity: 0.74;
+      --zf-blur: 0px;
+    }
+  }
+
+  @media -moz-pref("zen.fake_transparency.wallpaper_align", "left") {
+    :root {
+      --zf-wallpaper-align-x: left;
+    }
+  }
+
+  @media -moz-pref("zen.fake_transparency.wallpaper_align", "right") {
+    :root {
+      --zf-wallpaper-align-x: right;
+    }
+  }
+
+  /* Hide Zen's opaque gradient layer; wallpaper replaces it */
+  .zen-browser-generic-background {
+    &::before,
+    &::after {
+      background: transparent !important;
+      opacity: 0 !important;
+    }
+
+    & .zen-browser-grain {
+      display: none !important;
+    }
+  }
+
+  #zen-main-app-wrapper {
+    background: transparent !important;
+  }
+
+  #navigator-toolbox {
+    --toolbox-bgcolor: transparent !important;
+    --toolbox-bgcolor-inactive: transparent !important;
+    --toolbox-background-color: transparent !important;
+    --toolbox-background-color-inactive: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+  }
+
+  /* Full-window wallpaper + tint (FlexFox body-layer pattern, adapted for Zen) */
+  #main-window {
+    background-color: light-dark(
+      rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+      rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+    ) !important;
+    background-image: var(--zen-fake_transparency-wallpaper_url, none) !important;
+    background-repeat: no-repeat !important;
+    background-position: var(--zf-wallpaper-align-x) top !important;
+    background-size: cover !important;
+    background-attachment: fixed !important;
+  }
+
+  @media (-moz-bool-pref: "zen.fake_transparency.acrylic_blur") and
+    (not -moz-bool-pref: "zen.fake_transparency.acrylic_disabled")) {
+    #main-window::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      backdrop-filter: blur(var(--zf-blur)) saturate(140%);
+    }
+  }
+
+  /* Keep UI above wallpaper layer */
+  #browser,
+  #navigator-toolbox,
+  #zen-main-app-wrapper {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Frosted URL bar popup */
+  @media (-moz-bool-pref: "zen.fake_transparency.acrylic_blur") {
+    #urlbar[breakout][breakout-extend] {
+      backdrop-filter: blur(var(--zf-blur)) saturate(140%);
+    }
+
+    #urlbar[breakout][breakout-extend] > :where(#urlbar-background, .urlbar-background) {
+      background-color: light-dark(
+        rgba(249, 249, 251, var(--zf-urlbar-opacity)),
+        rgba(32, 32, 32, var(--zf-urlbar-opacity))
+      ) !important;
+      background-image: none !important;
+    }
+
+    menupopup,
+    panel:not(#autoscroller),
+    .toolbar-menupopup {
+      --panel-background: light-dark(
+        rgba(249, 249, 251, var(--zf-panel-opacity)),
+        rgba(32, 32, 32, var(--zf-panel-opacity))
+      ) !important;
+      background-color: light-dark(
+        rgba(249, 249, 251, var(--zf-panel-opacity)),
+        rgba(32, 32, 32, var(--zf-panel-opacity))
+      ) !important;
+      backdrop-filter: blur(var(--zf-blur)) saturate(140%);
+    }
+
+    /* backdrop-filter needs clip-path on content browsers when content is transparent */
+    browser:not(.devtools-toolbox-side-iframe, .devtools-toolbox-bottom-iframe) {
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+  }
+
+  /* Optional: show wallpaper through web content area */
+  @media (-moz-bool-pref: "zen.fake_transparency.transparent_content") {
+    #tabbrowser-tabpanels {
+      background-color: transparent !important;
+    }
+
+    #tabbrowser-tabbox #tabbrowser-tabpanels .browserSidebarContainer browser[type="content"] {
+      background: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1)) !important;
+    }
+
+    #tabbrowser-tabpanels .browserStack::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-color: light-dark(#f9f9fb, #202020);
+    }
+  }
+}

@@ -1,0 +1,63 @@
+[
+  {
+    "property": "zen.fake_transparency.enabled",
+    "label": "Enable fake transparency (Windows)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.wallpaper_url",
+    "label": "Wallpaper CSS url() — usually set by scripts/windows/sync-wallpaper.ps1",
+    "type": "string",
+    "defaultValue": "",
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.transparency_level",
+    "label": "Mask transparency (higher = clearer wallpaper)",
+    "type": "dropdown",
+    "defaultValue": "2",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "0 — Most opaque", "value": "0" },
+      { "label": "1", "value": "1" },
+      { "label": "2 — Default", "value": "2" },
+      { "label": "3", "value": "3" },
+      { "label": "4 — Most clear", "value": "4" }
+    ]
+  },
+  {
+    "property": "zen.fake_transparency.wallpaper_align",
+    "label": "Wallpaper horizontal alignment",
+    "type": "dropdown",
+    "defaultValue": "center",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Center", "value": "center" },
+      { "label": "Right", "value": "right" }
+    ]
+  },
+  {
+    "property": "zen.fake_transparency.acrylic_blur",
+    "label": "Acrylic blur on wallpaper and popups",
+    "type": "checkbox",
+    "defaultValue": true,
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.acrylic_disabled",
+    "label": "Disable blur (solid tint over wallpaper only)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.transparent_content",
+    "label": "Transparent web content area (requires browser.tabs.allow_transparent_browser in about:config)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "disabledOn": ["macos", "linux"]
+  }
+]
