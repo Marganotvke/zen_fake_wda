@@ -1,43 +1,42 @@
 # zen_fake
 
-FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) on **Windows 10/11**. Paints a wallpaper image behind semi-transparent chrome with optional acrylic blur — no native Mica required.
-
-This is **phase 1**: wallpaper sync (Windows desktop or Wallpaper Engine source path). Phase 2 (live desktop capture) is planned separately.
+FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) on **Windows 10/11**. Paints a wallpaper image (or live HTML/WebGL page) behind semi-transparent chrome with optional acrylic blur — no native Mica required.
 
 ## What it does
 
 - Hides Zen's opaque gradient background
-- Paints a wallpaper on `#main-window` (cover, fixed attachment)
+- **Static mode:** paints a wallpaper on `#main-window` (cover, fixed attachment)
+- **Live mode (v0.3):** embeds HTML/WebGL in `#zen-browser-background` via Sine + `index.js`
 - Applies a light/dark tint mask (adjustable transparency level)
 - Optional `backdrop-filter` blur on wallpaper, URL bar, and menus
 - Optional transparent web content area (with caveats)
 
-This does **not** capture the live desktop. It mirrors a **wallpaper file path** into Zen.
+Static mode does **not** capture the live desktop — it mirrors a **wallpaper file path**. Live mode runs a page inside Zen (generic HTML/WebGL; most WE web wallpapers need WE APIs or the v0.4 `playInWindow` prototype).
 
 ## Install
 
-### 1. Install the Zen mod
+### Option A — Sine sideload (recommended for live backgrounds)
 
-**Option A — From GitHub (recommended)**
+1. Install [Sine](https://github.com/CosmoCreeper/Sine) and [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig) for your Zen version; restart Zen.
+2. Sine settings → sideload: `Marganotvke/zen_fake/theme`
+3. On Windows, run `scripts/windows/sync-wallpaper.ps1` (Sine does not run this).
+4. Enable **Fake Transparency** in Sine/Zen mod settings.
 
-1. Open Zen → Settings → Zen Mods
-2. Install from URL using the raw `theme/chrome.css` link, or merge `install/zen-themes.json.snippet` into your profile `zen-themes.json` and copy `theme/` into `%APPDATA%\zen\Profiles\<profile>\chrome\zen-themes\f4e8c2a1-9b3d-4e5f-a6c7-d8e9f0a1b2c3\`
+Sine path sideloads `theme/theme.json` with `chrome.css`, `preferences.json`, and `index.js`.
 
-**Option B — Manual copy**
+### Option B — Zen native mods (CSS-only static mode)
 
-Copy the `theme/` folder to:
+Copy `theme/` to:
 
 ```
 %APPDATA%\zen\Profiles\<your-profile>\chrome\zen-themes\f4e8c2a1-9b3d-4e5f-a6c7-d8e9f0a1b2c3\
 ```
 
-Add the entry from `install/zen-themes.json.snippet` to `zen-themes.json` in the same profile.
+Add the entry from `install/zen-themes.json.snippet` to `zen-themes.json`. Live background requires Sine; native install keeps static CSS mode only.
 
-Restart Zen and enable **Fake Transparency** in the mod settings.
+Restart Zen and enable **Fake Transparency** in mod settings.
 
-### 2. Sync wallpaper (Windows)
-
-In PowerShell:
+### Sync wallpaper (Windows)
 
 ```powershell
 cd scripts\windows
@@ -51,15 +50,25 @@ Restart Zen.
 1. Wallpaper Engine `wallpaper64.exe -control getWallpaper` (if installed)
 2. Windows registry / `SPI_GETDESKWALLPAPER`
 
+If the WE source is `index.html`, the script also sets `live_background_url` and enables live mode (requires Sine). Static images still populate `wallpaper_url` for CSS fallback.
+
 **Optional — keep in sync:**
 
 ```powershell
 .\watch-wallpaper.ps1 -IntervalMinutes 30
 ```
 
-### 3. Optional prefs
+### WE scene wallpapers (v0.4 prototype)
 
-If you enable **Transparent web content area** in mod settings, also set in `about:config`:
+For `project.json` / scene wallpapers that cannot run in a Firefox `<browser>`, see [`docs/WINDOWS-WE-PLAYINWINDOW.md`](docs/WINDOWS-WE-PLAYINWINDOW.md) and:
+
+```powershell
+.\sync-live-window.ps1
+```
+
+### Optional prefs
+
+If you enable **Transparent web content area**, set in `about:config`:
 
 ```
 browser.tabs.allow_transparent_browser = true
@@ -72,28 +81,47 @@ See `install/user.js.snippet`.
 | Setting | Description |
 |---------|-------------|
 | Enable fake transparency | Master toggle (Windows only) |
-| Wallpaper CSS url() | Set by sync script; manual override possible |
+| Wallpaper CSS url() | Static image; set by sync script |
+| Live HTML/WebGL background | Requires Sine + fx-autoconfig |
+| Live background URI | `file://` or `https://`; set by sync for `index.html` |
 | Mask transparency | 0 = most opaque, 4 = clearest wallpaper |
 | Wallpaper alignment | Left / center / right |
 | Acrylic blur | Blur on wallpaper layer and popups |
 | Disable blur | Solid tint only |
 | Transparent content | Show wallpaper through tab content (fragile) |
 
+Settings use `disabledOn: ["macos","linux"]` in `preferences.json`. CSS is gated by `@media (-moz-platform: windows)`.
+
+## Compatibility
+
+| Source | Static CSS | Live embed (Sine) | WE playInWindow (prototype) |
+|--------|------------|-------------------|----------------------------|
+| Windows JPG/PNG | Yes | Optional fallback | N/A |
+| WE video `.mp4` | Partial | No | Yes |
+| WE web `index.html` | No | Partial (no WE APIs) | Yes |
+| WE scene `project.json` | No | No | Yes |
+| Custom HTML/WebGL URL | No | Yes | N/A |
+
 ## Limitations
 
-- **Wallpaper Engine scene/web wallpapers** (`project.json`, `index.html`) cannot be used as CSS backgrounds — only image/video file paths work, and video may not animate in CSS.
-- **Not live desktop capture** — icons and windows behind Zen are not shown.
-- **Win10 only for this mod** — macOS/Linux use native Zen transparency instead.
-- Combines with **DWMBlurGlass** for the native title bar only.
+- **Sine vs Zen native:** JS live background needs Sine/fx-autoconfig.
+- **Mod name:** keep `name: "Fake Transparency"` in `theme.json` — CSS uses `#theme-Fake-Transparency`.
+- **Not live desktop capture** — icons and windows behind Zen are not shown (except WE playInWindow prototype).
+- **Security:** live mode loads arbitrary URIs in a chrome `<browser>`; sync script defaults to local paths only.
 
 ## Repository layout
 
 ```
-theme/           Zen mod (chrome.css, preferences.json)
-scripts/windows/ Wallpaper sync helpers (PowerShell)
-install/         zen-themes.json snippet, user.js snippet
+theme/              chrome.css, preferences.json, theme.json, index.js
+scripts/windows/    sync-wallpaper.ps1, sync-live-window.ps1 (prototype)
+docs/               WINDOWS-WE-PLAYINWINDOW.md
+install/            zen-themes.json snippet, user.js snippet
 ```
+
+## Tested Zen version
+
+Pin your tested Zen build in issues/PRs when reporting bugs — `#zen-browser-background` is an internal DOM hook.
 
 ## License
 
-MPL-2.0 (match Zen/FlexFox ecosystem conventions)
+MPL-2.0

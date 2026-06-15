@@ -57,14 +57,63 @@
 
   /* Hide Zen's opaque gradient layer; wallpaper replaces it */
   .zen-browser-generic-background {
-    &::before,
-    &::after {
+    & .zen-browser-grain {
+      display: none !important;
+    }
+  }
+
+  @media (not (-moz-bool-pref: "zen.fake_transparency.live_background_enabled")) {
+    .zen-browser-generic-background {
+      &::before,
+      &::after {
+        background: transparent !important;
+        opacity: 0 !important;
+      }
+    }
+  }
+
+  /* Live HTML/WebGL embed (Sine index.js) */
+  @media (-moz-bool-pref: "zen.fake_transparency.live_background_enabled") {
+    #zen-browser-background {
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 0 !important;
+      overflow: clip !important;
+      pointer-events: none !important;
+    }
+
+    #zen-browser-background::before {
       background: transparent !important;
       opacity: 0 !important;
     }
 
-    & .zen-browser-grain {
-      display: none !important;
+    /* Tint overlay above live page, below chrome UI */
+    #zen-browser-background::after {
+      content: "" !important;
+      position: absolute !important;
+      inset: 0 !important;
+      z-index: 1 !important;
+      pointer-events: none !important;
+      opacity: 1 !important;
+      background: linear-gradient(
+        light-dark(
+          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+        ),
+        light-dark(
+          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+        )
+      ) !important;
+    }
+
+    #zen-fake-transparency-live-browser {
+      position: absolute !important;
+      inset: 0 !important;
+      min-width: 100% !important;
+      min-height: 100% !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
     }
   }
 
@@ -82,22 +131,30 @@
   }
 
   /* Full-window wallpaper + tint (FlexFox layered background-image pattern) */
-  #main-window {
-    background-image: linear-gradient(
-        light-dark(
-          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
-          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+  @media (not (-moz-bool-pref: "zen.fake_transparency.live_background_enabled")) {
+    #main-window {
+      background-image: linear-gradient(
+          light-dark(
+            rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+            rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+          ),
+          light-dark(
+            rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
+            rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
+          )
         ),
-        light-dark(
-          rgba(var(--zf-light-mask), var(--zf-mask-opacity)),
-          rgba(var(--zf-dark-mask), var(--zf-mask-opacity))
-        )
-      ),
-      var(--zen-fake_transparency-wallpaper_url, none) !important;
-    background-repeat: no-repeat, no-repeat !important;
-    background-position: var(--zf-wallpaper-align-x) top, var(--zf-wallpaper-align-x) top !important;
-    background-size: auto, cover !important;
-    background-attachment: scroll, fixed !important;
+        var(--zen-fake_transparency-wallpaper_url, none) !important;
+      background-repeat: no-repeat, no-repeat !important;
+      background-position: var(--zf-wallpaper-align-x) top, var(--zf-wallpaper-align-x) top !important;
+      background-size: auto, cover !important;
+      background-attachment: scroll, fixed !important;
+    }
+  }
+
+  @media (-moz-bool-pref: "zen.fake_transparency.live_background_enabled") {
+    #main-window {
+      background-image: none !important;
+    }
   }
 
   @media (-moz-bool-pref: "zen.fake_transparency.acrylic_blur") and
@@ -149,7 +206,11 @@
     }
 
     /* backdrop-filter needs clip-path on content browsers when content is transparent */
-    browser:not(.devtools-toolbox-side-iframe, .devtools-toolbox-bottom-iframe) {
+    browser:not(
+      .devtools-toolbox-side-iframe,
+      .devtools-toolbox-bottom-iframe,
+      #zen-fake-transparency-live-browser
+    ) {
       clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
     }
   }

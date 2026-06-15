@@ -14,6 +14,20 @@
     "disabledOn": ["macos", "linux"]
   },
   {
+    "property": "zen.fake_transparency.live_background_enabled",
+    "label": "Live HTML/WebGL background (requires Sine + fx-autoconfig)",
+    "type": "checkbox",
+    "defaultValue": false,
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.live_background_url",
+    "label": "Live background URI — file:// or https:// (set by sync script for index.html)",
+    "type": "string",
+    "defaultValue": "",
+    "disabledOn": ["macos", "linux"]
+  },
+  {
     "property": "zen.fake_transparency.transparency_level",
     "label": "Mask transparency (higher = clearer wallpaper)",
     "type": "dropdown",

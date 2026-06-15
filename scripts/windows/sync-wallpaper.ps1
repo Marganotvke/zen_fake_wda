@@ -1,15 +1,17 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Syncs the current desktop wallpaper into Zen's fake-transparency mod pref.
+  Syncs the current desktop wallpaper into Zen's fake-transparency mod prefs.
 
 .DESCRIPTION
   Resolution order:
-    1. Wallpaper Engine CLI (getWallpaper) — returns source asset path (.mp4, project.json, etc.)
+    1. Wallpaper Engine CLI (getWallpaper) — returns source asset path
     2. Windows registry wallpaper path (HKCU\Control Panel\Desktop\Wallpaper)
     3. SystemParametersInfo via .NET (SPI_GETDESKWALLPAPER)
 
-  Writes zen.fake_transparency.wallpaper_url as a CSS url("file:///...") value into prefs.js.
+  For static images/video: writes zen.fake_transparency.wallpaper_url as CSS url("file:///...").
+  For web wallpapers (index.html): also sets zen.fake_transparency.live_background_url and
+  enables zen.fake_transparency.live_background_enabled (requires Sine + index.js).
 
 .PARAMETER ProfilePath
   Zen profile directory. Auto-detected from %APPDATA%\zen\Profiles if omitted.
@@ -34,6 +36,8 @@ $ErrorActionPreference = "Stop"
 
 $PREF_WALLPAPER = "zen.fake_transparency.wallpaper_url"
 $PREF_ENABLED = "zen.fake_transparency.enabled"
+$PREF_LIVE_ENABLED = "zen.fake_transparency.live_background_enabled"
+$PREF_LIVE_URL = "zen.fake_transparency.live_background_url"
 
 function Find-ZenProfile {
   param([string]$Explicit)
@@ -141,6 +145,51 @@ function ConvertTo-CssFileUrl {
   return "url(`"$uri`")"
 }
 
+function ConvertTo-FileUri {
+  param([string]$FilePath)
+  return [System.Uri]::new((Resolve-Path $FilePath).Path).AbsoluteUri
+}
+
+function Resolve-LiveBackgroundPath {
+  param([string]$Path)
+  if (-not $Path) { return $null }
+
+  $resolved = if (Test-Path $Path) {
+    (Resolve-Path $Path).Path
+  } else {
+    return $null
+  }
+
+  $ext = [System.IO.Path]::GetExtension($resolved).ToLowerInvariant()
+  $dir = [System.IO.Path]::GetDirectoryName($resolved)
+
+  if ($ext -in @(".html", ".htm")) {
+    return $resolved
+  }
+
+  if ($ext -eq ".json" -and [System.IO.Path]::GetFileName($resolved) -eq "project.json") {
+    foreach ($candidate in @("index.html", "index.htm")) {
+      $html = Join-Path $dir $candidate
+      if (Test-Path $html) {
+        return (Resolve-Path $html).Path
+      }
+    }
+    Write-Warning "project.json found but no index.html in '$dir'. Scene wallpapers need sync-live-window.ps1 (WE playInWindow)."
+    return $null
+  }
+
+  if ((Test-Path $resolved -PathType Container)) {
+    foreach ($candidate in @("index.html", "index.htm")) {
+      $html = Join-Path $resolved $candidate
+      if (Test-Path $html) {
+        return (Resolve-Path $html).Path
+      }
+    }
+  }
+
+  return $null
+}
+
 function Set-ZenPref {
   param(
     [string]$PrefsFile,
@@ -201,27 +250,38 @@ if (-not $wallpaperPath) {
   throw "No wallpaper path found. Set a Windows wallpaper or run Wallpaper Engine first."
 }
 
-if (-not (Test-WallpaperUsableInCss -Path $wallpaperPath)) {
+$livePath = Resolve-LiveBackgroundPath -Path $wallpaperPath
+if ($livePath) {
+  $liveUri = ConvertTo-FileUri -FilePath $livePath
+  Set-ZenPref -PrefsFile $prefsFile -Name $PREF_LIVE_URL -Value $liveUri
+  Set-ZenPref -PrefsFile $prefsFile -Name $PREF_LIVE_ENABLED -Value "true" -Type bool
+  Write-Host "Live background detected:"
+  Write-Host "  HTML: $livePath"
+  Write-Host "  Pref: $PREF_LIVE_URL = $liveUri"
+  Write-Host "  Pref: $PREF_LIVE_ENABLED = true"
+  Write-Host "  Note: requires Sine + fx-autoconfig for index.js. Most WE web wallpapers need WE APIs."
+} else {
+  Set-ZenPref -PrefsFile $prefsFile -Name $PREF_LIVE_ENABLED -Value "false" -Type bool
+}
+
+if (Test-WallpaperUsableInCss -Path $wallpaperPath) {
+  $cssUrl = ConvertTo-CssFileUrl -FilePath $wallpaperPath
+  Set-ZenPref -PrefsFile $prefsFile -Name $PREF_WALLPAPER -Value $cssUrl
+  Write-Host "Static wallpaper synced ($source):"
+  Write-Host "  File: $wallpaperPath"
+  Write-Host "  Pref: $PREF_WALLPAPER = $cssUrl"
+} elseif (-not $livePath) {
   Write-Warning @"
 Wallpaper source is '$wallpaperPath' ($source).
-Scene/web wallpapers (project.json, index.html) cannot be used as a CSS background.
-For video wallpapers (.mp4), Zen may not animate them in CSS — a static first frame is not guaranteed.
-Consider using a static Windows wallpaper or a video file path and accept approximate matching.
+Scene/web wallpapers (project.json without index.html) cannot be used as CSS backgrounds.
+Run scripts/windows/sync-live-window.ps1 for WE scene wallpapers (playInWindow prototype).
 "@
 }
 
-$cssUrl = ConvertTo-CssFileUrl -FilePath $wallpaperPath
-Set-ZenPref -PrefsFile $prefsFile -Name $PREF_WALLPAPER -Value $cssUrl
-
 if ($EnableMod) {
   Set-ZenPref -PrefsFile $prefsFile -Name $PREF_ENABLED -Value "true" -Type bool
-}
-
-Write-Host "Synced ($source):"
-Write-Host "  File: $wallpaperPath"
-Write-Host "  Pref: $PREF_WALLPAPER = $cssUrl"
-if ($EnableMod) {
   Write-Host "  Pref: $PREF_ENABLED = true"
 }
+
 Write-Host ""
 Write-Host "Restart Zen for changes to take effect."

@@ -1,0 +1,24 @@
+{
+  "id": "f4e8c2a1-9b3d-4e5f-a6c7-d8e9f0a1b2c3",
+  "name": "Fake Transparency",
+  "description": "FlexFox-style fake transparency for Windows: synced wallpaper behind frosted Zen chrome.",
+  "version": "0.3.0",
+  "author": "Marganotvke",
+  "homepage": "https://github.com/Marganotvke/zen_fake",
+  "readme": "readme.md",
+  "style": {
+    "chrome": "chrome.css"
+  },
+  "preferences": "preferences.json",
+  "scripts": {
+    "index.js": {
+      "name": "Live background loader",
+      "description": "Embeds HTML/WebGL pages in #zen-browser-background (requires Sine + fx-autoconfig).",
+      "include": ["chrome://browser/content/browser.xhtml"]
+    }
+  },
+  "fork": ["zen"],
+  "tags": ["windows", "transparency", "wallpaper", "acrylic"],
+  "createdAt": "2026-06-15",
+  "updatedAt": "2026-06-15"
+}
