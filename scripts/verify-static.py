@@ -16,6 +16,59 @@ BROWSER_XHTML = (
 ERRORS: list[str] = []
 WARNINGS: list[str] = []
 
+SINE_SIDELOAD = "Marganotvke/zen_fake_wda/tree/main/theme"
+SINE_INVALID = "Marganotvke/zen_fake_wda/theme"
+
+
+def parse_sine_github_url(url: str) -> dict[str, str]:
+    """Match Sine manager.sys.mjs parseGitHubUrl accepted formats."""
+    url = re.sub(r"(\?.+)?(/+)?$", "", url)
+    regexes = [
+        r"^(?:https?://)?github\.com/([^/]+)/([^/]+)$",
+        r"^(?:https?://)?github\.com/([^/]+)/([^/]+)/tree/([^/]+)(/.*)?$",
+        r"^(?:https?://)?raw\.githubusercontent\.com/([^/]+)/([^/]+)/refs/heads/([^/]+)(/.*)?$",
+        r"^(?:https?://)?raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)(/.*)?$",
+        r"^([^/]+)/([^/]+)/tree/([^/]+)(/.*)?$",
+        r"^([^/]+)/([^/]+)$",
+    ]
+    for pattern in regexes:
+        match = re.match(pattern, url)
+        if not match:
+            continue
+        author, repo = match.group(1), match.group(2)
+        branch, folder = "main", ""
+        if match.lastindex and match.lastindex >= 3:
+            branch = match.group(3)
+            folder = (match.group(4) or "").lstrip("/")
+        return {"author": author, "repo": repo, "branch": branch, "folder": folder}
+    raise ValueError("Unknown GitHub repo format")
+
+
+def check_sine_sideload() -> None:
+    try:
+        parsed = parse_sine_github_url(SINE_SIDELOAD)
+    except ValueError:
+        ERRORS.append(f"Sine sideload constant does not parse: {SINE_SIDELOAD}")
+        return
+
+    if parsed["author"] != "Marganotvke" or parsed["repo"] != "zen_fake_wda":
+        ERRORS.append(f"Sine sideload repo mismatch: {parsed}")
+    if parsed["branch"] != "main" or parsed["folder"] != "theme":
+        ERRORS.append(f"Sine sideload must resolve to main/theme, got {parsed}")
+
+    try:
+        parse_sine_github_url(SINE_INVALID)
+        ERRORS.append(f"Invalid sideload must not parse: {SINE_INVALID}")
+    except ValueError:
+        pass
+
+    for doc in (ROOT / "README.md", ROOT / "theme/readme.md"):
+        if not doc.exists():
+            ERRORS.append(f"{doc.relative_to(ROOT)} missing")
+            continue
+        if SINE_SIDELOAD not in doc.read_text():
+            ERRORS.append(f"{doc.relative_to(ROOT)} missing canonical sideload: {SINE_SIDELOAD}")
+
 
 def main() -> int:
     prefs = json.loads((ROOT / "theme/preferences.json").read_text())
@@ -140,6 +193,8 @@ def main() -> int:
         install_src = install_ps.read_text()
         if "capture_exe_path" not in install_src:
             ERRORS.append("install-capture.ps1 must set capture_exe_path pref")
+
+    check_sine_sideload()
 
     live_window_ps = ROOT / "scripts/windows/sync-live-window.ps1"
     if not live_window_ps.exists():

@@ -2,6 +2,14 @@
 
 Windows-only mod: static wallpaper, live HTML/WebGL embed, or **live desktop capture** behind frosted Zen chrome.
 
+## Sine sideload
+
+```
+Marganotvke/zen_fake_wda/tree/main/theme
+```
+
+Do **not** use `Marganotvke/zen_fake_wda/theme` — Sine requires the `/tree/<branch>/<folder>` format.
+
 ## Background modes
 
 | Mode | Setting | Requires |
@@ -14,7 +22,7 @@ Only one mode is active at a time. `index.js` syncs bool prefs for CSS gating.
 
 ## Desktop capture setup
 
-1. Install Sine + fx-autoconfig; sideload `Marganotvke/zen_fake/theme`
+1. Install Sine + fx-autoconfig; sideload `Marganotvke/zen_fake_wda/tree/main/theme`
 2. Run once:
 
 ```powershell

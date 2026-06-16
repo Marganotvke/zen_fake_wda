@@ -16,8 +16,10 @@ If `WDA_EXCLUDEFROMCAPTURE` fails on Zen's HWND, the companion **automatically f
 ## Sine sideload
 
 ```
-Marganotvke/zen_fake_wda/theme
+Marganotvke/zen_fake_wda/tree/main/theme
 ```
+
+Do **not** use `Marganotvke/zen_fake_wda/theme` — Sine requires the `/tree/<branch>/<folder>` format.
 
 ## Desktop capture
 
@@ -60,7 +62,7 @@ FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) 
 ### Sine sideload (required for live + desktop modes)
 
 1. Install [Sine](https://github.com/CosmoCreeper/Sine) and [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig); restart Zen.
-2. Sine settings → sideload: `Marganotvke/zen_fake_wda/theme`
+2. Sine settings → sideload: `Marganotvke/zen_fake_wda/tree/main/theme`
 3. On Windows, run `scripts/windows/sync-wallpaper.ps1` for static/live wallpaper prefs.
 4. For desktop capture, run once: `scripts/windows/install-capture.ps1`
 5. Enable **Fake Transparency**; choose **Background mode** in mod settings.
