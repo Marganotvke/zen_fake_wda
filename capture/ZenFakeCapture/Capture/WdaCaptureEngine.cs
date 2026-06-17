@@ -6,8 +6,8 @@ using ZenFakeCapture.Win32;
 namespace ZenFakeCapture.Capture;
 
 /// <summary>
-/// Full-monitor capture after excluding the Zen window via WDA_EXCLUDEFROMCAPTURE.
-/// Simpler and usually faster than hole-buffer strip compositing.
+/// Full-monitor capture with WDA_EXCLUDEFROMCAPTURE on Zen and, when unfocused,
+/// the same-monitor foreground application.
 /// </summary>
 internal sealed class WdaCaptureEngine : ICaptureEngine
 {
@@ -21,6 +21,7 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
     private readonly int _jpegQuality;
     private readonly EncoderParameters _jpegParams;
     private readonly MemoryStream _jpegStream = new(256 * 1024);
+    private readonly HashSet<IntPtr> _affinityHwnds = new();
 
     private Bitmap? _buffer;
     private Graphics? _bufferGraphics;
@@ -28,7 +29,6 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
     private Graphics? _nativeGraphics;
     private Rectangle _monitorBounds;
     private Rectangle _scaledBounds;
-    private IntPtr _affinityHwnd = IntPtr.Zero;
     private int _affinityAttempts;
 
     public WdaCaptureEngine(int watchPid, int scalePercent, int jpegQuality)
@@ -63,14 +63,15 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
             Math.Max(1, (int)(_monitorBounds.Height * scale))
         );
 
-        var hwnd = WindowHelper.FindMainWindowForProcess(_watchPid);
-        if (hwnd == IntPtr.Zero || WindowHelper.IsWindowMinimized(hwnd))
+        var zenHwnd = WindowHelper.FindMainWindowForProcess(_watchPid);
+        if (zenHwnd == IntPtr.Zero || WindowHelper.IsWindowMinimized(zenHwnd))
         {
+            ClearAllAffinity();
             IsPaused = true;
             return null;
         }
 
-        if (!EnsureAffinity(hwnd))
+        if (!EnsureAffinity(zenHwnd))
         {
             IsPaused = true;
             _affinityAttempts++;
@@ -100,26 +101,53 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
         return EncodeJpeg(_buffer!);
     }
 
-    private bool EnsureAffinity(IntPtr hwnd)
+    private bool EnsureAffinity(IntPtr zenHwnd)
     {
-        if (_affinityHwnd != IntPtr.Zero && hwnd == _affinityHwnd)
-        {
-            return true;
-        }
-
-        if (!WindowHelper.TryExcludeFromCapture(hwnd))
+        var targets = WindowHelper.ResolveWdaExclusionTargets(zenHwnd, _watchPid);
+        if (targets.Count == 0)
         {
             return false;
         }
 
-        if (_affinityHwnd != IntPtr.Zero && _affinityHwnd != hwnd)
+        var applied = new HashSet<IntPtr>();
+
+        foreach (var hwnd in targets)
         {
-            WindowHelper.ClearExcludeFromCapture(_affinityHwnd);
+            WindowHelper.GetWindowOwnerPid(hwnd, out var ownerPid);
+            var required = ownerPid == (uint)_watchPid;
+            if (WindowHelper.TryExcludeFromCapture(hwnd, required: required))
+            {
+                applied.Add(hwnd);
+            }
+            else if (required)
+            {
+                ClearAllAffinity();
+                return false;
+            }
         }
 
-        _affinityHwnd = hwnd;
-        Console.WriteLine($"WDA_EXCLUDEFROMCAPTURE enabled on Zen HWND 0x{hwnd:X}");
+        foreach (var hwnd in _affinityHwnds.Where(h => !applied.Contains(h)).ToList())
+        {
+            WindowHelper.ClearExcludeFromCapture(hwnd);
+            _affinityHwnds.Remove(hwnd);
+        }
+
+        foreach (var hwnd in applied)
+        {
+            _affinityHwnds.Add(hwnd);
+        }
+
         return true;
+    }
+
+    private void ClearAllAffinity()
+    {
+        foreach (var hwnd in _affinityHwnds.ToList())
+        {
+            WindowHelper.ClearExcludeFromCapture(hwnd);
+        }
+
+        _affinityHwnds.Clear();
     }
 
     private void EnsureBuffers()
@@ -156,8 +184,7 @@ internal sealed class WdaCaptureEngine : ICaptureEngine
 
     public void Dispose()
     {
-        WindowHelper.ClearExcludeFromCapture(_affinityHwnd);
-        _affinityHwnd = IntPtr.Zero;
+        ClearAllAffinity();
         _bufferGraphics?.Dispose();
         _nativeGraphics?.Dispose();
         _buffer?.Dispose();

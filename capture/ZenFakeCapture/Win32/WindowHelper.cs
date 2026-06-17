@@ -28,8 +28,19 @@ internal static class WindowHelper
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
     internal const uint WdaNone = 0x00000000;
     internal const uint WdaExcludeFromCapture = 0x00000011;
+    private const uint GaRoot = 2;
+    private const uint MonitorDefaultToNearest = 2;
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct RECT
@@ -94,6 +105,11 @@ internal static class WindowHelper
         return GetWindowRect(hWnd, out rect);
     }
 
+    internal static void GetWindowOwnerPid(IntPtr hWnd, out uint processId)
+    {
+        GetWindowThreadProcessId(hWnd, out processId);
+    }
+
     internal static bool IsWindowMinimized(IntPtr hWnd)
     {
         return hWnd != IntPtr.Zero && IsIconic(hWnd);
@@ -112,7 +128,73 @@ internal static class WindowHelper
         }
     }
 
-    internal static bool TryExcludeFromCapture(IntPtr hwnd)
+    internal static IntPtr GetForegroundRootWindow()
+    {
+        var foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+        {
+            return IntPtr.Zero;
+        }
+
+        var root = GetAncestor(foreground, GaRoot);
+        return root != IntPtr.Zero ? root : foreground;
+    }
+
+    internal static bool IsSameMonitor(IntPtr hwndA, IntPtr hwndB)
+    {
+        if (hwndA == IntPtr.Zero || hwndB == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        var monitorA = MonitorFromWindow(hwndA, MonitorDefaultToNearest);
+        var monitorB = MonitorFromWindow(hwndB, MonitorDefaultToNearest);
+        return monitorA != IntPtr.Zero && monitorA == monitorB;
+    }
+
+    /// <summary>
+    /// WDA targets: always Zen; plus foreground app when another process is focused on the same monitor.
+    /// </summary>
+    internal static IReadOnlyList<IntPtr> ResolveWdaExclusionTargets(IntPtr zenHwnd, int watchPid)
+    {
+        if (zenHwnd == IntPtr.Zero)
+        {
+            return Array.Empty<IntPtr>();
+        }
+
+        var targets = new List<IntPtr> { zenHwnd };
+        var foreground = GetForegroundRootWindow();
+        if (foreground == IntPtr.Zero ||
+            !IsWindowVisible(foreground) ||
+            IsWindowMinimized(foreground) ||
+            !GetWindowRect(foreground, out var fgRect) ||
+            fgRect.Width <= 0 ||
+            fgRect.Height <= 0)
+        {
+            return targets;
+        }
+
+        GetWindowThreadProcessId(foreground, out var fgPid);
+        if (fgPid == (uint)watchPid)
+        {
+            if (foreground != zenHwnd && IsSameMonitor(foreground, zenHwnd))
+            {
+                targets.Add(foreground);
+            }
+
+            return targets;
+        }
+
+        if (!IsSameMonitor(foreground, zenHwnd))
+        {
+            return targets;
+        }
+
+        targets.Add(foreground);
+        return targets;
+    }
+
+    internal static bool TryExcludeFromCapture(IntPtr hwnd, bool required = true)
     {
         if (hwnd == IntPtr.Zero)
         {
@@ -123,7 +205,9 @@ internal static class WindowHelper
         {
             var error = Marshal.GetLastWin32Error();
             Console.Error.WriteLine(
-                $"SetWindowDisplayAffinity failed for HWND 0x{hwnd:X} (error {error})"
+                required
+                    ? $"SetWindowDisplayAffinity failed for HWND 0x{hwnd:X} (error {error})"
+                    : $"SetWindowDisplayAffinity optional exclude failed for HWND 0x{hwnd:X} (error {error})"
             );
             return false;
         }

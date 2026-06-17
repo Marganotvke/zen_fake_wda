@@ -13,6 +13,8 @@ Experimental fork of [zen_fake](https://github.com/Marganotvke/zen_fake) that us
 
 If `WDA_EXCLUDEFROMCAPTURE` fails on Zen's HWND, the companion **automatically falls back** to hole-buffer capture (same as main repo).
 
+When Zen loses focus, WDA also excludes the **foreground app on the same monitor** so alt-tabbed windows are not mirrored into the fake background.
+
 ## Sine sideload
 
 ```

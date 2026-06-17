@@ -52,11 +52,13 @@ Area under an unmoved window may stay wallpaper-seeded until the window moves.
 ### WDA mode (default in this fork)
 
 1. Find Zen main HWND for `--watch-pid`
-2. `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` — Zen omitted from BitBlt/WGC captures
+2. `SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE)` on:
+   - **Zen** — always
+   - **Foreground app** — when Zen is not focused and the foreground root window is on the **same monitor** as Zen (best-effort; failure does not abort capture)
 3. Full primary-monitor `CopyFromScreen` at native res, scale to `capture_scale`, JPEG encode
-4. On exit, clear affinity (`WDA_NONE`)
+4. On exit, clear affinity (`WDA_NONE`) on all tracked HWNDs
 
-Requires **Windows 10 2004+**. If affinity fails (layered-window conflict, old Windows), auto-falls back to hole-buffer.
+Requires **Windows 10 2004+**. If Zen affinity fails, auto-falls back to hole-buffer after ~90 retries.
 
 ### Hole-buffer mode (`--hole-buffer`)
 
