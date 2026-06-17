@@ -70,6 +70,33 @@ def check_sine_sideload() -> None:
             ERRORS.append(f"{doc.relative_to(ROOT)} missing canonical sideload: {SINE_SIDELOAD}")
 
 
+def check_theme_json_sine_compat(theme: dict) -> None:
+    homepage = theme.get("homepage", "")
+    try:
+        parsed = parse_sine_github_url(homepage)
+    except ValueError:
+        ERRORS.append(
+            f'theme.json homepage must parse as Sine repo URL (use .../tree/main/theme): {homepage!r}'
+        )
+    else:
+        if parsed["folder"] != "theme":
+            ERRORS.append(f'theme.json homepage must point at theme/ subfolder, got {parsed}')
+
+    scripts = theme.get("scripts", {})
+    if not scripts:
+        WARNINGS.append("theme.json has no scripts (live/desktop modes need index.uc.js)")
+        return
+
+    for script_name in scripts:
+        if not (script_name.endswith(".uc.js") or script_name.endswith(".uc.mjs") or script_name.endswith(".sys.mjs")):
+            ERRORS.append(
+                f"Sine only loads .uc.js/.uc.mjs/.sys.mjs scripts, not {script_name!r}"
+            )
+
+    if not (ROOT / "theme/index.uc.js").exists():
+        ERRORS.append("theme/index.uc.js missing (Sine background controller)")
+
+
 def main() -> int:
     prefs = json.loads((ROOT / "theme/preferences.json").read_text())
     css = (ROOT / "theme/chrome.css").read_text()
@@ -87,12 +114,15 @@ def main() -> int:
         if theme.get("name") != "Fake Transparency":
             ERRORS.append('theme.json name must stay "Fake Transparency" (CSS #theme-Fake-Transparency)')
         scripts = theme.get("scripts", {})
-        if "index.js" not in scripts:
-            WARNINGS.append("theme.json has no scripts.index.js (live background needs Sine)")
+        if "index.uc.js" not in scripts:
+            ERRORS.append("theme.json scripts must include index.uc.js for Sine")
+        check_theme_json_sine_compat(theme)
 
-    index_js = ROOT / "theme/index.js"
+    index_js = ROOT / "theme/index.uc.js"
+    if (ROOT / "theme/index.js").exists():
+        ERRORS.append("theme/index.js should be renamed to index.uc.js for Sine")
     if not index_js.exists():
-        ERRORS.append("theme/index.js missing (background controller)")
+        ERRORS.append("theme/index.uc.js missing (background controller)")
     else:
         index_src = index_js.read_text()
         for needle in (
@@ -105,7 +135,7 @@ def main() -> int:
             "Subprocess",
         ):
             if needle not in index_src:
-                ERRORS.append(f"index.js missing reference: {needle}")
+                ERRORS.append(f"index.uc.js missing reference: {needle}")
 
     capture_csproj = ROOT / "capture/ZenFakeCapture/ZenFakeCapture.csproj"
     if not capture_csproj.exists():

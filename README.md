@@ -21,6 +21,10 @@ Marganotvke/zen_fake_wda/tree/main/theme
 
 Do **not** use `Marganotvke/zen_fake_wda/theme` — Sine requires the `/tree/<branch>/<folder>` format.
 
+**Repo must be public** — Sine downloads an anonymous codeload zip; private repos fail with `nsIZipReader.open`.
+
+Also enable in Sine settings: **installing JS from unofficial sources**. Set `toolkit.legacyUserProfileCustomizations.stylesheets` = true in `about:config`.
+
 ## Desktop capture
 
 ```powershell
@@ -28,7 +32,7 @@ cd scripts\windows
 .\install-capture.ps1
 ```
 
-`index.js` spawns the companion with `--wda` (default). To force hole-buffer:
+`index.uc.js` spawns the companion with `--wda` (default). To force hole-buffer:
 
 ```text
 ZenFakeCapture.exe ... --hole-buffer
@@ -52,7 +56,7 @@ FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) 
 
 - Hides Zen's opaque gradient / accent theme layers in dynamic modes
 - **Static mode:** wallpaper on `#main-window` (CSS)
-- **Live mode:** HTML/WebGL in `#zen-browser-background` via Sine + `index.js`
+- **Live mode:** HTML/WebGL in `#zen-browser-background` via Sine + `index.uc.js`
 - **Desktop capture (v0.4):** live desktop MJPEG stream via `ZenFakeCapture.exe` (auto-spawned while Zen is open)
 - Mod-only frosted tint mask (not Zen workspace accent wash)
 - Optional `backdrop-filter` blur on chrome, URL bar, and menus
@@ -62,10 +66,13 @@ FlexFox-style **fake transparency** for [Zen Browser](https://zen-browser.app/) 
 ### Sine sideload (required for live + desktop modes)
 
 1. Install [Sine](https://github.com/CosmoCreeper/Sine) and [fx-autoconfig](https://github.com/MrOtherGuy/fx-autoconfig); restart Zen.
-2. Sine settings → sideload: `Marganotvke/zen_fake_wda/tree/main/theme`
-3. On Windows, run `scripts/windows/sync-wallpaper.ps1` for static/live wallpaper prefs.
-4. For desktop capture, run once: `scripts/windows/install-capture.ps1`
-5. Enable **Fake Transparency**; choose **Background mode** in mod settings.
+2. Make this GitHub repo **public** (required for Sine zip download).
+3. Sine settings → enable **installing JS from unofficial sources**.
+4. `about:config` → `toolkit.legacyUserProfileCustomizations.stylesheets` = **true**.
+5. Sine sideload: `Marganotvke/zen_fake_wda/tree/main/theme`
+6. On Windows, run `scripts/windows/sync-wallpaper.ps1` for static/live wallpaper prefs.
+7. For desktop capture, run once: `scripts/windows/install-capture.ps1`
+8. Enable **Fake Transparency**; choose **Background mode** in mod settings.
 
 ### Zen native mods (static CSS only)
 
@@ -75,7 +82,7 @@ Copy `theme/` to:
 %APPDATA%\zen\Profiles\<profile>\chrome\zen-themes\f4e8c2a1-9b3d-4e5f-a6c7-d8e9f0a1b2c3\
 ```
 
-Live embed and desktop capture require Sine + `index.js`.
+Live embed and desktop capture require Sine + `index.uc.js`.
 
 ## Background modes
 
@@ -144,7 +151,7 @@ Zen normally composites workspace accent colors onto `.zen-browser-generic-backg
 ## Layout
 
 ```
-theme/              chrome.css, index.js, preferences.json, theme.json
+theme/              chrome.css, index.uc.js, preferences.json, theme.json
 capture/            ZenFakeCapture (C# .NET 8, Windows)
 scripts/windows/    sync-wallpaper.ps1, install-capture.ps1, sync-live-window.ps1
 docs/               WINDOWS-WE-PLAYINWINDOW.md
