@@ -11,6 +11,8 @@
   const PREF_MODE = "zen.fake_transparency.background_mode";
   const PREF_LIVE_ENABLED = "zen.fake_transparency.live_background_enabled";
   const PREF_DESKTOP_ENABLED = "zen.fake_transparency.desktop_capture_enabled";
+  const PREF_UNFOCUSED_BEHAVIOR = "zen.fake_transparency.unfocused_behavior";
+  const PREF_UNFOCUSED_PAUSED = "zen.fake_transparency.unfocused_paused";
   const PREF_LIVE_URL = "zen.fake_transparency.live_background_url";
   const PREF_CAPTURE_EXE = "zen.fake_transparency.capture_exe_path";
   const PREF_CAPTURE_URL = "zen.fake_transparency.capture_helper_url";
@@ -20,15 +22,19 @@
   const MODE_LIVE = "live";
   const MODE_DESKTOP = "desktop";
 
+  const UNFOCUS_KEEP = "keep";
+  const UNFOCUS_PAUSE_CAPTURE = "pause_capture";
+  const UNFOCUS_PAUSE = "pause";
+
   const LIVE_BROWSER_ID = "zen-fake-transparency-live-browser";
   const CAPTURE_IMG_ID = "zen-fake-transparency-capture-img";
   const MAX_MOUNT_RETRIES = 120;
   const RESIZE_DEBOUNCE_MS = 300;
 
-  // Prefs that require index.js to remount/spawn (CSS-only prefs are ignored).
   const JS_RELEVANT_PREFS = new Set([
     "enabled",
     "background_mode",
+    "unfocused_behavior",
     "live_background_enabled",
     "desktop_capture_enabled",
     "live_background_url",
@@ -96,17 +102,44 @@
     return cssUrlMatch ? cssUrlMatch[1] : trimmed;
   }
 
+  function prefUnfocusedBehavior() {
+    const behavior = prefString(PREF_UNFOCUSED_BEHAVIOR, UNFOCUS_KEEP);
+    if (
+      behavior === UNFOCUS_PAUSE ||
+      behavior === UNFOCUS_PAUSE_CAPTURE ||
+      behavior === UNFOCUS_KEEP
+    ) {
+      return behavior;
+    }
+    return UNFOCUS_KEEP;
+  }
+
+  function isWindowFocused() {
+    try {
+      return Services.focus.activeWindow === window;
+    } catch {
+      return document.hasFocus();
+    }
+  }
+
+  function updateFocusRuntimePrefs() {
+    const enabled = prefBool(PREF_ENABLED, false);
+    const focused = isWindowFocused();
+    const behavior = prefUnfocusedBehavior();
+    const fullPause = enabled && !focused && behavior === UNFOCUS_PAUSE;
+    setBoolPref(PREF_UNFOCUSED_PAUSED, fullPause);
+  }
+
   function resolveBackgroundMode() {
-    // Bool prefs gate CSS; check them first so JS matches what chrome.css shows.
+    const mode = prefString(PREF_MODE, "");
+    if (mode === MODE_LIVE || mode === MODE_DESKTOP || mode === MODE_STATIC) {
+      return mode;
+    }
     if (prefBool(PREF_DESKTOP_ENABLED, false)) {
       return MODE_DESKTOP;
     }
     if (prefBool(PREF_LIVE_ENABLED, false)) {
       return MODE_LIVE;
-    }
-    const mode = prefString(PREF_MODE, "");
-    if (mode === MODE_LIVE || mode === MODE_DESKTOP) {
-      return mode;
     }
     return MODE_STATIC;
   }
@@ -116,9 +149,15 @@
       return;
     }
     modeSyncInProgress = true;
-    const mode = resolveBackgroundMode();
-    setBoolPref(PREF_LIVE_ENABLED, mode === MODE_LIVE);
-    setBoolPref(PREF_DESKTOP_ENABLED, mode === MODE_DESKTOP);
+    const mode = prefString(PREF_MODE, MODE_STATIC);
+    const resolved =
+      mode === MODE_LIVE
+        ? MODE_LIVE
+        : mode === MODE_DESKTOP
+          ? MODE_DESKTOP
+          : MODE_STATIC;
+    setBoolPref(PREF_LIVE_ENABLED, resolved === MODE_LIVE);
+    setBoolPref(PREF_DESKTOP_ENABLED, resolved === MODE_DESKTOP);
     modeSyncInProgress = false;
   }
 
@@ -134,6 +173,25 @@
     } else {
       Services.prefs.setStringPref(PREF_MODE, MODE_STATIC);
     }
+  }
+
+  function shouldRun() {
+    return (
+      prefBool(PREF_ENABLED, false) &&
+      !prefBool(PREF_UNFOCUSED_PAUSED, false) &&
+      !document.documentElement.hasAttribute("inFullscreen")
+    );
+  }
+
+  function shouldRunDesktopCapture() {
+    if (!shouldRun()) {
+      return false;
+    }
+    const behavior = prefUnfocusedBehavior();
+    if (!isWindowFocused() && behavior === UNFOCUS_PAUSE_CAPTURE) {
+      return false;
+    }
+    return true;
   }
 
   function removeLiveBrowser() {
@@ -303,13 +361,6 @@
     }
   }
 
-  function shouldRun() {
-    return (
-      prefBool(PREF_ENABLED, false) &&
-      !document.documentElement.hasAttribute("inFullscreen")
-    );
-  }
-
   let refreshInFlight = null;
 
   async function refresh() {
@@ -325,6 +376,8 @@
   }
 
   async function refreshInner() {
+    updateFocusRuntimePrefs();
+    syncModePrefsFromBackgroundMode();
     const mode = resolveBackgroundMode();
 
     if (!shouldRun() || mode === MODE_STATIC) {
@@ -352,6 +405,12 @@
 
     if (mode === MODE_DESKTOP) {
       removeLiveBrowser();
+      if (!shouldRunDesktopCapture()) {
+        removeCaptureImg();
+        await shutdownCaptureCompanion();
+        return;
+      }
+
       const sig = captureSignature();
       if (captureProcess && sig !== lastCaptureSignature) {
         await shutdownCaptureCompanion();
@@ -377,6 +436,16 @@
       if (data === "background_mode") {
         syncModePrefsFromBackgroundMode();
       }
+      if (data === "unfocused_behavior") {
+        updateFocusRuntimePrefs();
+      }
+      scheduleRefresh();
+    },
+  };
+
+  const focusObserver = {
+    observe() {
+      updateFocusRuntimePrefs();
       scheduleRefresh();
     },
   };
@@ -398,7 +467,20 @@
     Services.prefs.addObserver(PREF_BRANCH, prefObserver);
     window.addEventListener("unload", async () => {
       Services.prefs.removeObserver(PREF_BRANCH, prefObserver);
+      Services.obs.removeObserver(focusObserver, "active-window-changed");
       await shutdownCaptureCompanion();
+    });
+  }
+
+  function observeFocus() {
+    Services.obs.addObserver(focusObserver, "active-window-changed");
+    window.addEventListener("focus", () => {
+      updateFocusRuntimePrefs();
+      scheduleRefresh();
+    });
+    window.addEventListener("blur", () => {
+      updateFocusRuntimePrefs();
+      scheduleRefresh();
     });
   }
 
@@ -413,6 +495,7 @@
 
   migrateLegacyModePref();
   syncModePrefsFromBackgroundMode();
+  updateFocusRuntimePrefs();
 
   if (document.readyState === "complete") {
     refresh();
@@ -430,5 +513,6 @@
     }, RESIZE_DEBOUNCE_MS);
   });
   observePrefs();
+  observeFocus();
   observeFullscreen();
 })();

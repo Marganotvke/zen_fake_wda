@@ -4,7 +4,8 @@
  * v0.4: live embed, desktop capture, unified dynamic-mode theme isolation.
  */
 
-@media (-moz-platform: windows) and (-moz-bool-pref: "zen.fake_transparency.enabled") {
+@media (-moz-platform: windows) and (-moz-bool-pref: "zen.fake_transparency.enabled") and
+  (not (-moz-bool-pref: "zen.fake_transparency.unfocused_paused")) {
   :root {
     --zf-light-mask: 255, 255, 255;
     --zf-dark-mask: 0, 0, 0;

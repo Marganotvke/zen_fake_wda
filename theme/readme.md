@@ -2,6 +2,28 @@
 
 Windows-only mod: static wallpaper, live HTML/WebGL embed, or live desktop capture behind frosted Zen chrome.
 
+## Mod settings explained
+
+### Background mode (dropdown)
+
+Pick **one** background source:
+
+| Option | What it does |
+|--------|----------------|
+| **Static wallpaper** | CSS wallpaper on `#main-window` (sync via `sync-wallpaper.ps1`) |
+| **Live HTML/WebGL embed** | Loads a URI into a background `<browser>` (needs Sine + fx-autoconfig) |
+| **Live desktop capture** | Spawns `ZenFakeCapture.exe`, streams MJPEG into the mod (needs install-capture.ps1) |
+
+You only need to set this dropdown. Older builds also showed **Live HTML/WebGL background** and **Desktop capture** checkboxes below — those were internal sync flags for CSS (`-moz-bool-pref`) and are **no longer shown**. `index.uc.js` sets them automatically from your dropdown choice.
+
+### When Zen is not focused (dropdown)
+
+| Option | Behavior |
+|--------|----------|
+| **Keep transparency active** | Default — effects and capture keep running while alt-tabbed |
+| **Pause desktop capture only** | Stops `ZenFakeCapture.exe` when unfocused; frosted chrome stays (saves CPU) |
+| **Pause all transparency** | Turns off mod visuals and stops capture/live embed until Zen is focused again |
+
 ## Sine sideload
 
 ```
@@ -16,16 +38,6 @@ Do **not** use `Marganotvke/zen_fake_wda/theme` — Sine requires the `/tree/<br
 - Sine: enable **installing JS from unofficial sources**
 - `about:config`: `toolkit.legacyUserProfileCustomizations.stylesheets` = true
 - fx-autoconfig installed
-
-## Background modes
-
-| Mode | Setting | Requires |
-|------|---------|----------|
-| Static | Background mode → Static | CSS only (or Sine) |
-| Live embed | Background mode → Live HTML/WebGL | Sine + fx-autoconfig |
-| Desktop capture | Background mode → Live desktop capture | Sine + ZenFakeCapture.exe |
-
-Only one mode is active at a time. `index.uc.js` syncs bool prefs for CSS gating.
 
 ## Desktop capture setup
 

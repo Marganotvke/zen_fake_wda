@@ -130,7 +130,9 @@ def main() -> int:
             "zen-fake-transparency-live-browser",
             "zen-fake-transparency-capture-img",
             "zen.fake_transparency.background_mode",
+            "zen.fake_transparency.unfocused_behavior",
             "zen.fake_transparency.desktop_capture_enabled",
+            "zen.fake_transparency.unfocused_paused",
             "ZenFakeCapture",
             "Subprocess",
         ):
@@ -193,9 +195,8 @@ def main() -> int:
     pref_props = {p["property"] for p in prefs}
     for required in (
         "zen.fake_transparency.background_mode",
-        "zen.fake_transparency.live_background_enabled",
+        "zen.fake_transparency.unfocused_behavior",
         "zen.fake_transparency.live_background_url",
-        "zen.fake_transparency.desktop_capture_enabled",
         "zen.fake_transparency.capture_exe_path",
         "zen.fake_transparency.capture_helper_url",
         "zen.fake_transparency.background_fps",
@@ -204,6 +205,18 @@ def main() -> int:
     ):
         if required not in pref_props:
             ERRORS.append(f"preferences.json missing {required}")
+
+    for internal_only in (
+        "zen.fake_transparency.live_background_enabled",
+        "zen.fake_transparency.desktop_capture_enabled",
+    ):
+        if internal_only in pref_props:
+            ERRORS.append(
+                f"preferences.json must not expose internal sync pref {internal_only} — use background_mode dropdown only"
+            )
+
+    if "unfocused_paused" not in css:
+        ERRORS.append("CSS must gate on zen.fake_transparency.unfocused_paused for full pause")
 
     for fn in (
         "Find-ZenProfile",
@@ -237,8 +250,6 @@ def main() -> int:
     for p in prefs:
         if p["type"] == "checkbox" and p["property"] not in css and p["property"] not in (
             "zen.fake_transparency.enabled",
-            "zen.fake_transparency.live_background_enabled",
-            "zen.fake_transparency.desktop_capture_enabled",
         ):
             WARNINGS.append(f"checkbox pref not in CSS: {p['property']}")
 

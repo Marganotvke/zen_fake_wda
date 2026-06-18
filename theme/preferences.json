@@ -19,6 +19,18 @@
     ]
   },
   {
+    "property": "zen.fake_transparency.unfocused_behavior",
+    "label": "When Zen is not focused",
+    "type": "dropdown",
+    "defaultValue": "keep",
+    "disabledOn": ["macos", "linux"],
+    "options": [
+      { "label": "Keep transparency active", "value": "keep" },
+      { "label": "Pause desktop capture only (save CPU)", "value": "pause_capture" },
+      { "label": "Pause all transparency (save resources)", "value": "pause" }
+    ]
+  },
+  {
     "property": "zen.fake_transparency.wallpaper_url",
     "label": "Wallpaper CSS url() — usually set by scripts/windows/sync-wallpaper.ps1",
     "type": "string",
@@ -26,24 +38,10 @@
     "disabledOn": ["macos", "linux"]
   },
   {
-    "property": "zen.fake_transparency.live_background_enabled",
-    "label": "Live HTML/WebGL background (synced from background mode)",
-    "type": "checkbox",
-    "defaultValue": false,
-    "disabledOn": ["macos", "linux"]
-  },
-  {
     "property": "zen.fake_transparency.live_background_url",
     "label": "Live background URI — file:// or https:// (set by sync script for index.html)",
     "type": "string",
     "defaultValue": "",
-    "disabledOn": ["macos", "linux"]
-  },
-  {
-    "property": "zen.fake_transparency.desktop_capture_enabled",
-    "label": "Desktop capture (synced from background mode)",
-    "type": "checkbox",
-    "defaultValue": false,
     "disabledOn": ["macos", "linux"]
   },
   {
@@ -62,7 +60,7 @@
   },
   {
     "property": "zen.fake_transparency.background_fps",
-    "label": "Background FPS (live capture + companion)",
+    "label": "Background FPS (desktop capture companion)",
     "type": "dropdown",
     "defaultValue": "15",
     "disabledOn": ["macos", "linux"],
