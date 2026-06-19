@@ -53,16 +53,53 @@ public static class Win32Window {
 }
 "@
 
+function Get-SteamLibraryRoots {
+  $roots = @()
+  foreach ($base in @(
+    "${env:ProgramFiles(x86)}\Steam",
+    "$env:ProgramFiles\Steam"
+  )) {
+    if ($base -and (Test-Path $base)) { $roots += $base }
+  }
+
+  foreach ($drive in Get-PSDrive -PSProvider FileSystem) {
+    $steamRoot = Join-Path $drive.Root "Steam"
+    $steamLibraryRoot = Join-Path $drive.Root "SteamLibrary"
+    if (Test-Path $steamRoot) { $roots += $steamRoot }
+    if (Test-Path $steamLibraryRoot) { $roots += $steamLibraryRoot }
+  }
+
+  $vdfFiles = @()
+  foreach ($root in @($roots | Select-Object -Unique)) {
+    $vdfFiles += Join-Path (Join-Path $root "steamapps") "libraryfolders.vdf"
+  }
+  foreach ($vdf in @($vdfFiles | Where-Object { Test-Path $_ } | Select-Object -Unique)) {
+    $content = Get-Content -Path $vdf -Raw
+    foreach ($match in [regex]::Matches($content, '"path"\s+"((?:[^"\\]|\\.)+)"')) {
+      $path = $match.Groups[1].Value -replace '\\\\', '\'
+      if (Test-Path $path) { $roots += $path }
+    }
+  }
+
+  return @($roots | Select-Object -Unique)
+}
+
+function Get-WallpaperEngineCandidates {
+  param([string[]]$SteamRoots)
+  $candidates = @()
+  foreach ($root in $SteamRoots) {
+    $candidates += Join-Path $root "steamapps\common\wallpaper_engine\wallpaper64.exe"
+  }
+  return @($candidates | Where-Object { Test-Path $_ } | Select-Object -Unique)
+}
+
 function Find-WallpaperEngine {
   param([string]$Explicit)
   if ($Explicit -and (Test-Path $Explicit)) {
     return (Resolve-Path $Explicit).Path
   }
-  foreach ($p in @(
-    "${env:ProgramFiles(x86)}\Steam\steamapps\common\wallpaper_engine\wallpaper64.exe",
-    "$env:ProgramFiles\Steam\steamapps\common\wallpaper_engine\wallpaper64.exe"
-  )) {
-    if (Test-Path $p) { return (Resolve-Path $p).Path }
+  foreach ($p in (Get-WallpaperEngineCandidates -SteamRoots (Get-SteamLibraryRoots))) {
+    return (Resolve-Path $p).Path
   }
   return $null
 }
@@ -75,12 +112,19 @@ function Get-WallpaperEnginePath {
   $psi.Arguments = "-control getWallpaper"
   $psi.UseShellExecute = $false
   $psi.RedirectStandardOutput = $true
+  $psi.RedirectStandardError = $true
   $psi.CreateNoWindow = $true
   $proc = [System.Diagnostics.Process]::Start($psi)
-  $stdout = $proc.StandardOutput.ReadToEnd().Trim()
+  $stdout = $proc.StandardOutput.ReadToEnd()
+  $stderr = $proc.StandardError.ReadToEnd()
   $proc.WaitForExit()
-  if ($proc.ExitCode -ne 0 -or -not $stdout -or -not (Test-Path $stdout)) { return $null }
-  return (Resolve-Path $stdout).Path
+
+  foreach ($line in @($stdout, $stderr)) {
+    foreach ($candidate in @($line -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+      if (Test-Path $candidate) { return (Resolve-Path $candidate).Path }
+    }
+  }
+  return $null
 }
 
 function Resolve-WallpaperFile {

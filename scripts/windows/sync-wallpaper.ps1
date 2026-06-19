@@ -62,18 +62,45 @@ function Find-ZenProfile {
   return $candidates[0].FullName
 }
 
+function Get-SteamLibraryRoots {
+  $roots = @()
+  foreach ($base in @(
+    "${env:ProgramFiles(x86)}\Steam",
+    "$env:ProgramFiles\Steam"
+  )) {
+    if ($base -and (Test-Path $base)) { $roots += $base }
+  }
+
+  foreach ($drive in Get-PSDrive -PSProvider FileSystem) {
+    $steamRoot = Join-Path $drive.Root "Steam"
+    $steamLibraryRoot = Join-Path $drive.Root "SteamLibrary"
+    if (Test-Path $steamRoot) { $roots += $steamRoot }
+    if (Test-Path $steamLibraryRoot) { $roots += $steamLibraryRoot }
+  }
+
+  $vdfFiles = @()
+  foreach ($root in @($roots | Select-Object -Unique)) {
+    $vdfFiles += Join-Path (Join-Path $root "steamapps") "libraryfolders.vdf"
+  }
+  foreach ($vdf in @($vdfFiles | Where-Object { Test-Path $_ } | Select-Object -Unique)) {
+    $content = Get-Content -Path $vdf -Raw
+    foreach ($match in [regex]::Matches($content, '"path"\s+"((?:[^"\\]|\\.)+)"')) {
+      $path = $match.Groups[1].Value -replace '\\\\', '\'
+      if (Test-Path $path) { $roots += $path }
+    }
+  }
+
+  return @($roots | Select-Object -Unique)
+}
+
 function Find-WallpaperEngine {
   param([string]$Explicit)
   if ($Explicit -and (Test-Path $Explicit)) {
     return (Resolve-Path $Explicit).Path
   }
 
-  $steamRoots = @(
-    "${env:ProgramFiles(x86)}\Steam\steamapps\common\wallpaper_engine\wallpaper64.exe",
-    "$env:ProgramFiles\Steam\steamapps\common\wallpaper_engine\wallpaper64.exe"
-  )
-
-  foreach ($p in $steamRoots) {
+  foreach ($root in (Get-SteamLibraryRoots)) {
+    $p = Join-Path $root "steamapps\common\wallpaper_engine\wallpaper64.exe"
     if (Test-Path $p) { return (Resolve-Path $p).Path }
   }
 
@@ -93,16 +120,17 @@ function Get-WallpaperEnginePath {
   $psi.CreateNoWindow = $true
 
   $proc = [System.Diagnostics.Process]::Start($psi)
-  $stdout = $proc.StandardOutput.ReadToEnd().Trim()
+  $stdout = $proc.StandardOutput.ReadToEnd()
+  $stderr = $proc.StandardError.ReadToEnd()
   $proc.WaitForExit()
 
-  if ($proc.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($stdout)) {
-    return $null
-  }
-
-  if (Test-Path $stdout) {
-    Write-Verbose "Wallpaper Engine: $stdout"
-    return $stdout
+  foreach ($line in @($stdout, $stderr)) {
+    foreach ($candidate in @($line -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })) {
+      if (Test-Path $candidate) {
+        Write-Verbose "Wallpaper Engine: $candidate"
+        return (Resolve-Path $candidate).Path
+      }
+    }
   }
 
   return $null

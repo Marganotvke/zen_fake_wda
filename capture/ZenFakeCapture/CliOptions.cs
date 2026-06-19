@@ -10,7 +10,7 @@ internal sealed class CliOptions
     public int Fps { get; set; } = 15;
     public int CaptureScalePercent { get; set; } = 50;
     public int JpegQuality { get; set; } = 72;
-    public bool UseWda { get; set; } = true;
+    public bool UseWda { get; set; } = false;
 
     public static CliOptions Parse(string[] args)
     {
@@ -81,8 +81,8 @@ internal sealed class CliOptions
                 [--wda] [--hole-buffer]
 
             Capture modes:
-              --wda (default)  SetWindowDisplayAffinity WDA_EXCLUDEFROMCAPTURE + full monitor blit
-              --hole-buffer  Strip-based hole buffer (fallback if WDA fails)
+              --wda             SetWindowDisplayAffinity WDA_EXCLUDEFROMCAPTURE + full monitor blit
+              --hole-buffer     Strip-based hole buffer (default)
 
             Endpoints:
               GET /stream   multipart/x-mixed-replace MJPEG

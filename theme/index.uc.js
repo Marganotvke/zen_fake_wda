@@ -296,7 +296,7 @@
       String(fps),
       "--scale",
       String(scale),
-      "--wda",
+      "--hole-buffer",
     ];
 
     try {
