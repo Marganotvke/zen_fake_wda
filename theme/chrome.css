@@ -16,6 +16,7 @@
     --zf-capture-blur: 24px;
     --zf-wallpaper-align-x: center;
     --zf-content-tint-color: #00000080;
+    --zf-content-tint-strength: 2%;
     --zen-themed-toolbar-bg-transparent: transparent !important;
     --zen-main-browser-background: transparent !important;
     --zen-main-browser-background-toolbar: transparent !important;
@@ -233,27 +234,42 @@
   }
 
   @media (-moz-pref("zen.fake_transparency.content_tint_mode", 1)) {
-    .browserStack > browser,
+    .browserStack,
     #tabbrowser-tabpanels,
     #zen-appcontent-wrapper,
+    #zen-tabbox-wrapper,
     #appcontent,
-    browser[type="content"] {
-      background-color: color-mix(in srgb, var(--lwt-accent-color, var(--zen-primary-color)) 75%, transparent) !important;
+    hbox.browserSidebarContainer,
+    .browserSidebarContainer,
+    #sidebar-main,
+    #sidebar-box,
+    #sidebar-splitter,
+    #zen-sidebar-splitter,
+    #ai-window-splitter {
+      background-color: color-mix(in srgb, var(--lwt-accent-color, var(--zen-primary-color)) var(--zf-content-tint-strength), transparent) !important;
     }
   }
 
   @media (-moz-pref("zen.fake_transparency.content_tint_mode", 2)) {
-    .browserStack > browser,
+    .browserStack,
     #tabbrowser-tabpanels,
     #zen-appcontent-wrapper,
+    #zen-tabbox-wrapper,
     #appcontent,
-    browser[type="content"] {
+    hbox.browserSidebarContainer,
+    .browserSidebarContainer,
+    #sidebar-main,
+    #sidebar-box,
+    #sidebar-splitter,
+    #zen-sidebar-splitter,
+    #ai-window-splitter {
       background-color: var(--zf-content-tint-color) !important;
     }
   }
 
   #navigator-toolbox {
     --toolbox-bgcolor: transparent !important;
+
     --toolbox-bgcolor-inactive: transparent !important;
     --toolbox-background-color: transparent !important;
     --toolbox-background-color-inactive: transparent !important;
