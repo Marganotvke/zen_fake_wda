@@ -155,26 +155,6 @@
     "disabledOn": ["macos", "linux"]
   },
   {
-    "property": "zen.fake_transparency.content_tint_strength",
-    "label": "Main content tint strength",
-    "type": "dropdown",
-    "value": "number",
-    "defaultValue": 35,
-    "options": [
-      { "label": "0%", "value": 0 },
-      { "label": "15%", "value": 15 },
-      { "label": "25%", "value": 25 },
-      { "label": "35% — default", "value": 35 },
-      { "label": "50%", "value": 50 },
-      { "label": "75%", "value": 75 },
-      { "label": "100%", "value": 100 }
-    ],
-    "conditions": [
-      { "if": { "property": "zen.fake_transparency.content_tint_mode", "value": 1 } }
-    ],
-    "disabledOn": ["macos", "linux"]
-  },
-  {
     "property": "zen.fake_transparency.content_tint_color",
     "label": "Custom main content background color",
     "type": "string",
