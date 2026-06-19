@@ -17,6 +17,7 @@
   const PREF_CAPTURE_EXE = "zen.fake_transparency.capture_exe_path";
   const PREF_CAPTURE_URL = "zen.fake_transparency.capture_helper_url";
   const PREF_FPS = "zen.fake_transparency.background_fps";
+  const LEGACY_PREFS_TO_CLEAR = ["zen.fake_transparency.transparent_content"];
 
   const MODE_STATIC = "static";
   const MODE_LIVE = "live";
@@ -172,6 +173,16 @@
       Services.prefs.setStringPref(PREF_MODE, MODE_LIVE);
     } else {
       Services.prefs.setStringPref(PREF_MODE, MODE_STATIC);
+    }
+  }
+
+  function clearLegacyPrefs() {
+    for (const pref of LEGACY_PREFS_TO_CLEAR) {
+      try {
+        Services.prefs.clearUserPref(pref);
+      } catch {
+        // pref may not exist
+      }
     }
   }
 
@@ -390,7 +401,7 @@
     const bg = document.getElementById("zen-browser-background");
     if (!bg) {
       if (mountRetries++ < MAX_MOUNT_RETRIES) {
-        requestAnimationFrame(refresh);
+        scheduleRefresh(100);
       }
       return;
     }
@@ -493,7 +504,31 @@
     window.addEventListener("unload", () => observer.disconnect());
   }
 
+  function observeZenBackgroundMount() {
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (
+            node.nodeType === Node.ELEMENT_NODE &&
+            (node.id === "zen-browser-background" ||
+              node.querySelector?.("#zen-browser-background"))
+          ) {
+            scheduleRefresh(0);
+            return;
+          }
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+    window.addEventListener("unload", () => observer.disconnect());
+  }
+
   migrateLegacyModePref();
+  clearLegacyPrefs();
   syncModePrefsFromBackgroundMode();
   updateFocusRuntimePrefs();
 
@@ -515,4 +550,5 @@
   observePrefs();
   observeFocus();
   observeFullscreen();
+  observeZenBackgroundMount();
 })();
