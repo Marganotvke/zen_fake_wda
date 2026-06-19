@@ -19,6 +19,7 @@
   const PREF_FPS = "zen.fake_transparency.background_fps";
   const PREF_CONTENT_TINT_MODE = "zen.fake_transparency.content_tint_mode";
   const PREF_CONTENT_TINT_COLOR = "zen.fake_transparency.content_tint_color";
+  const PREF_CONTENT_TINT_STRENGTH = "zen.fake_transparency.content_tint_strength";
   const LEGACY_PREFS_TO_CLEAR = ["zen.fake_transparency.transparent_content"];
 
   const MODE_STATIC = "static";
@@ -46,6 +47,7 @@
     "background_fps",
     "capture_scale",
     "content_tint_color",
+    "content_tint_strength",
   ]);
 
   let mountRetries = 0;
@@ -136,7 +138,9 @@
 
   function updateContentTintVars() {
     const color = prefString(PREF_CONTENT_TINT_COLOR, "#00000080").trim() || "#00000080";
+    const strength = Math.min(100, Math.max(0, prefInt(PREF_CONTENT_TINT_STRENGTH, 35)));
     document.documentElement.style.setProperty("--zf-content-tint-color", color);
+    document.documentElement.style.setProperty("--zf-content-tint-strength", `${strength}%`);
   }
 
   function resolveBackgroundMode() {
@@ -459,7 +463,7 @@
       if (data === "unfocused_behavior") {
         updateFocusRuntimePrefs();
       }
-      if (data === "content_tint_color") {
+      if (data === "content_tint_color" || data === "content_tint_strength") {
         updateContentTintVars();
       }
       scheduleRefresh();
