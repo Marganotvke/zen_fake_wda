@@ -41,7 +41,9 @@ internal static class Program
             options.WatchPid,
             scale,
             options.JpegQuality,
-            options.UseWda
+            options.UseWda,
+            options.FullRefreshMs,
+            options.FullHide
         );
         var frames = new FrameBuffer();
         using var cts = new CancellationTokenSource();
@@ -89,7 +91,9 @@ internal static class Program
                             options.WatchPid,
                             scale,
                             options.JpegQuality,
-                            options.UseWda
+                            options.UseWda,
+                            options.FullRefreshMs,
+                            fullHide: options.FullHide
                         );
                     }
                 }
@@ -105,7 +109,9 @@ internal static class Program
                             options.WatchPid,
                             scale,
                             options.JpegQuality,
-                            preferWda: false
+                            preferWda: false,
+                            fullRefreshMs: options.FullRefreshMs,
+                            fullHide: options.FullHide
                         );
                         continue;
                     }

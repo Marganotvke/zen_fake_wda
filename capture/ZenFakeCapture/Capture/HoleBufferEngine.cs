@@ -18,6 +18,7 @@ internal sealed class HoleBufferEngine : ICaptureEngine
     private readonly int _watchPid;
     private readonly int _scalePercent;
     private readonly int _jpegQuality;
+    private readonly int _fullRefreshMs;
     private readonly EncoderParameters _jpegParams;
     private readonly MemoryStream _jpegStream = new(256 * 1024);
 
@@ -28,12 +29,14 @@ internal sealed class HoleBufferEngine : ICaptureEngine
     private Rectangle _scaledBounds;
     private float _scale = 1f;
     private bool _bufferSeeded;
+    private long _lastFullRefreshTicks;
 
-    public HoleBufferEngine(int watchPid, int scalePercent, int jpegQuality)
+    public HoleBufferEngine(int watchPid, int scalePercent, int jpegQuality, int fullRefreshMs = 0)
     {
         _watchPid = watchPid;
         _scalePercent = Math.Clamp(scalePercent, 10, 100);
         _jpegQuality = Math.Clamp(jpegQuality, 30, 95);
+        _fullRefreshMs = Math.Max(0, fullRefreshMs);
         _jpegParams = new EncoderParameters(1);
         _jpegParams.Param[0] = new EncoderParameter(Encoder.Quality, (long)_jpegQuality);
     }
@@ -65,10 +68,15 @@ internal sealed class HoleBufferEngine : ICaptureEngine
 
         IsPaused = false;
         var holeNative = GetHoleRectNative(hwnd);
+        var now = Environment.TickCount64;
+        var forceFullRefresh = !_bufferSeeded ||
+            holeNative.IsEmpty ||
+            (_fullRefreshMs > 0 && now - _lastFullRefreshTicks >= _fullRefreshMs);
 
-        if (!_bufferSeeded || holeNative.IsEmpty)
+        if (forceFullRefresh)
         {
-            SeedBufferFull();
+            SeedBufferFull(hwnd);
+            _lastFullRefreshTicks = now;
         }
         else
         {
@@ -99,12 +107,29 @@ internal sealed class HoleBufferEngine : ICaptureEngine
         _bufferGraphics.CompositingMode = CompositingMode.SourceCopy;
     }
 
-    private void SeedBufferFull()
+    private void SeedBufferFull(IntPtr hwnd)
     {
-        BlitStripFromScreen(
-            new Rectangle(0, 0, _monitorBounds.Width, _monitorBounds.Height),
-            new Rectangle(0, 0, _scaledBounds.Width, _scaledBounds.Height)
-        );
+        var wasVisible = WindowHelper.IsWindowVisible(hwnd);
+        if (wasVisible)
+        {
+            WindowHelper.HideWindow(hwnd);
+        }
+
+        try
+        {
+            BlitStripFromScreen(
+                new Rectangle(0, 0, _monitorBounds.Width, _monitorBounds.Height),
+                new Rectangle(0, 0, _scaledBounds.Width, _scaledBounds.Height)
+            );
+        }
+        finally
+        {
+            if (wasVisible)
+            {
+                WindowHelper.ShowWindowNoActivate(hwnd);
+            }
+        }
+
         _bufferSeeded = true;
     }
 

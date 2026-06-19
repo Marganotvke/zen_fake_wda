@@ -273,6 +273,7 @@
     return [
       prefString(PREF_CAPTURE_EXE, ""),
       prefString(PREF_CAPTURE_URL, "http://127.0.0.1:8765"),
+      "full-hide",
       prefInt(PREF_FPS, 15),
       prefInt("zen.fake_transparency.capture_scale", 50),
     ].join("|");
@@ -336,7 +337,7 @@
       String(fps),
       "--scale",
       String(scale),
-      "--hole-buffer",
+      "--full-hide",
     ];
 
     try {

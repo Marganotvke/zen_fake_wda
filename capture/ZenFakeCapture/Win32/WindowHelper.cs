@@ -17,7 +17,7 @@ internal static class WindowHelper
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
     [DllImport("user32.dll")]
-    private static extern bool IsWindowVisible(IntPtr hWnd);
+    private static extern bool IsWindowVisibleNative(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern bool IsIconic(IntPtr hWnd);
@@ -27,6 +27,9 @@ internal static class WindowHelper
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
@@ -39,6 +42,8 @@ internal static class WindowHelper
 
     internal const uint WdaNone = 0x00000000;
     internal const uint WdaExcludeFromCapture = 0x00000011;
+    private const int SwHide = 0;
+    private const int SwShowNoActivate = 8;
     private const uint GaRoot = 2;
     private const uint MonitorDefaultToNearest = 2;
 
@@ -116,9 +121,24 @@ internal static class WindowHelper
         GetWindowThreadProcessId(hWnd, out processId);
     }
 
+    internal static bool IsWindowVisible(IntPtr hWnd)
+    {
+        return hWnd != IntPtr.Zero && IsWindowVisibleNative(hWnd);
+    }
+
     internal static bool IsWindowMinimized(IntPtr hWnd)
     {
-        return hWnd != IntPtr.Zero && IsIconic(hWnd);
+        return IsWindowVisible(hWnd) && IsIconic(hWnd);
+    }
+
+    internal static void HideWindow(IntPtr hWnd)
+    {
+        ShowWindow(hWnd, SwHide);
+    }
+
+    internal static void ShowWindowNoActivate(IntPtr hWnd)
+    {
+        ShowWindow(hWnd, SwShowNoActivate);
     }
 
     internal static bool IsProcessAlive(int processId)

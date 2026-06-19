@@ -10,7 +10,9 @@ internal sealed class CliOptions
     public int Fps { get; set; } = 15;
     public int CaptureScalePercent { get; set; } = 50;
     public int JpegQuality { get; set; } = 72;
+    public int FullRefreshMs { get; set; } = 500;
     public bool UseWda { get; set; } = false;
+    public bool FullHide { get; set; } = false;
 
     public static CliOptions Parse(string[] args)
     {
@@ -41,14 +43,22 @@ internal sealed class CliOptions
                 case "--scale" when i + 1 < args.Length:
                     options.CaptureScalePercent = int.Parse(args[++i]);
                     break;
+                case "--full-refresh-ms" when i + 1 < args.Length:
+                    options.FullRefreshMs = int.Parse(args[++i]);
+                    break;
                 case "--quality" when i + 1 < args.Length:
                     options.JpegQuality = int.Parse(args[++i]);
                     break;
                 case "--wda":
                     options.UseWda = true;
                     break;
+                case "--full-hide":
+                    options.FullHide = true;
+                    options.UseWda = false;
+                    break;
                 case "--no-wda":
                 case "--hole-buffer":
+                    options.FullHide = false;
                     options.UseWda = false;
                     break;
                 case "--help":
@@ -78,11 +88,12 @@ internal sealed class CliOptions
             Usage:
               ZenFakeCapture.exe --watch-pid <zen-pid> [--profile <path>] [--no-tray]
                 [--host 127.0.0.1] [--port 8765] [--fps 15] [--scale 50] [--quality 72]
-                [--wda] [--hole-buffer]
+                [--full-refresh-ms 500] [--full-hide] [--wda] [--hole-buffer]
 
             Capture modes:
+              --full-hide       Briefly hide Zen each frame and capture full monitor
               --wda             SetWindowDisplayAffinity WDA_EXCLUDEFROMCAPTURE + full monitor blit
-              --hole-buffer     Strip-based hole buffer (default)
+              --hole-buffer     Strip-based hole buffer
 
             Endpoints:
               GET /stream   multipart/x-mixed-replace MJPEG
