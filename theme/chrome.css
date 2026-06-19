@@ -242,12 +242,8 @@
 
   @media (-moz-bool-pref: "zen.fake_transparency.acrylic_blur") and
     (not -moz-bool-pref: "zen.fake_transparency.acrylic_disabled")) {
-    #main-window::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
+    #navigator-toolbox,
+    #urlbar[breakout][breakout-extend] {
       backdrop-filter: blur(var(--zf-blur)) saturate(140%);
     }
   }
@@ -295,39 +291,6 @@
       #zen-fake-transparency-capture-img
     ) {
       clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-    }
-  }
-
-  @media (-moz-bool-pref: "zen.fake_transparency.transparent_content") {
-    #appcontent,
-
-    #zen-appcontent-wrapper,
-    #zen-appcontent-navbar-wrapper,
-    #zen-appcontent-navbar-container,
-    #zen-tabbox-wrapper,
-    #tabbrowser-tabbox,
-    #tabbrowser-tabpanels,
-    .browserSidebarContainer,
-    .browserStack,
-    #sidebar-main,
-    #sidebar-box,
-    #sidebar-splitter,
-    #zen-sidebar-splitter,
-    #ai-window-splitter,
-    browser[type="content"] {
-      background: transparent !important;
-      background-color: transparent !important;
-      background-image: none !important;
-      box-shadow: none !important;
-    }
-
-    #tabbrowser-tabpanels .browserStack::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      pointer-events: none;
-      background-color: transparent !important;
     }
   }
 }
