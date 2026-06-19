@@ -77,6 +77,12 @@ internal static class WindowHelper
                     return true;
                 }
 
+                var root = GetAncestor(hWnd, GaRoot);
+                if (root == IntPtr.Zero || root != hWnd)
+                {
+                    return true;
+                }
+
                 if (!GetWindowRect(hWnd, out var rect))
                 {
                     return true;

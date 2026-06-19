@@ -90,7 +90,16 @@ internal sealed class MjpegServer : IDisposable
 
             while (!_cts.IsCancellationRequested && ctx.Response.OutputStream.CanWrite)
             {
-                var frame = _frameProvider();
+                byte[]? frame = null;
+                try
+                {
+                    frame = _frameProvider();
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"ZenFakeCapture frame capture failed: {ex.Message}");
+                }
+
                 if (frame == null || frame.Length == 0)
                 {
                     await Task.Delay(50, _cts.Token);

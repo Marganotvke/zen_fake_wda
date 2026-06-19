@@ -31,6 +31,7 @@
 
   const LIVE_BROWSER_ID = "zen-fake-transparency-live-browser";
   const CAPTURE_IMG_ID = "zen-fake-transparency-capture-img";
+  const CAPTURE_IMG_REFRESH_MS = 3000;
   const MAX_MOUNT_RETRIES = 120;
   const RESIZE_DEBOUNCE_MS = 300;
 
@@ -50,6 +51,7 @@
 
   let mountRetries = 0;
   let captureProcess = null;
+  let captureImgRefreshTimer = null;
   let modeSyncInProgress = false;
   let lastCaptureSignature = "";
 
@@ -219,6 +221,10 @@
 
   function removeCaptureImg() {
     document.getElementById(CAPTURE_IMG_ID)?.remove();
+    if (captureImgRefreshTimer) {
+      clearTimeout(captureImgRefreshTimer);
+      captureImgRefreshTimer = null;
+    }
   }
 
   async function shutdownCaptureCompanion() {
@@ -245,6 +251,24 @@
     return `${base}/stream`;
   }
 
+  function refreshCaptureImg() {
+    const img = document.getElementById(CAPTURE_IMG_ID);
+    if (img) {
+      img.src = `${parseCaptureStreamUrl()}?t=${Date.now()}`;
+    }
+  }
+
+  function scheduleCaptureImgRefresh() {
+    if (captureImgRefreshTimer) {
+      clearTimeout(captureImgRefreshTimer);
+    }
+    captureImgRefreshTimer = setTimeout(() => {
+      captureImgRefreshTimer = null;
+      refreshCaptureImg();
+      scheduleCaptureImgRefresh();
+    }, CAPTURE_IMG_REFRESH_MS);
+  }
+
   function captureSignature() {
     return [
       prefString(PREF_CAPTURE_EXE, ""),
@@ -267,20 +291,17 @@
   }
 
   function watchCaptureProcessExit(proc) {
-    proc.wait().then(
-      () => {
-        if (captureProcess === proc) {
-          captureProcess = null;
-          scheduleRefresh();
+    const onExit = () => {
+      if (captureProcess === proc) {
+        captureProcess = null;
+        if (captureImgRefreshTimer) {
+          clearTimeout(captureImgRefreshTimer);
+          captureImgRefreshTimer = null;
         }
-      },
-      () => {
-        if (captureProcess === proc) {
-          captureProcess = null;
-          scheduleRefresh();
-        }
+        scheduleRefresh();
       }
-    );
+    };
+    proc.wait().then(onExit, onExit);
   }
 
   async function spawnCaptureCompanion() {
@@ -378,6 +399,7 @@
     if (!img.src || !img.src.startsWith(streamUrl.split("?")[0])) {
       img.src = `${streamUrl}?t=${Date.now()}`;
     }
+    scheduleCaptureImgRefresh();
   }
 
   let refreshInFlight = null;
