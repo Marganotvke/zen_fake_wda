@@ -136,4 +136,33 @@
     "defaultValue": false,
     "disabledOn": ["macos", "linux"]
   },
+  {
+    "type": "separator",
+    "label": "Content background compatibility",
+    "margin": "18px 0 12px 0"
+  },
+  {
+    "property": "zen.fake_transparency.content_tint_mode",
+    "label": "Main content background mode",
+    "type": "dropdown",
+    "value": "number",
+    "defaultValue": 0,
+    "options": [
+      { "label": "Extension controlled — default", "value": 0 },
+      { "label": "Zen theme tint", "value": 1 },
+      { "label": "Custom color", "value": 2 }
+    ],
+    "disabledOn": ["macos", "linux"]
+  },
+  {
+    "property": "zen.fake_transparency.content_tint_color",
+    "label": "Custom main content background color",
+    "type": "string",
+    "defaultValue": "#00000080",
+    "placeholder": "#00000080",
+    "conditions": [
+      { "if": { "property": "zen.fake_transparency.content_tint_mode", "value": 2 } }
+    ],
+    "disabledOn": ["macos", "linux"]
+  }
 ]

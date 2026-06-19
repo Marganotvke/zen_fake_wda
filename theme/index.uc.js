@@ -17,6 +17,8 @@
   const PREF_CAPTURE_EXE = "zen.fake_transparency.capture_exe_path";
   const PREF_CAPTURE_URL = "zen.fake_transparency.capture_helper_url";
   const PREF_FPS = "zen.fake_transparency.background_fps";
+  const PREF_CONTENT_TINT_MODE = "zen.fake_transparency.content_tint_mode";
+  const PREF_CONTENT_TINT_COLOR = "zen.fake_transparency.content_tint_color";
   const LEGACY_PREFS_TO_CLEAR = ["zen.fake_transparency.transparent_content"];
 
   const MODE_STATIC = "static";
@@ -43,6 +45,7 @@
     "capture_helper_url",
     "background_fps",
     "capture_scale",
+    "content_tint_color",
   ]);
 
   let mountRetries = 0;
@@ -129,6 +132,11 @@
     const behavior = prefUnfocusedBehavior();
     const fullPause = enabled && !focused && behavior === UNFOCUS_PAUSE;
     setBoolPref(PREF_UNFOCUSED_PAUSED, fullPause);
+  }
+
+  function updateContentTintVars() {
+    const color = prefString(PREF_CONTENT_TINT_COLOR, "#00000080").trim() || "#00000080";
+    document.documentElement.style.setProperty("--zf-content-tint-color", color);
   }
 
   function resolveBackgroundMode() {
@@ -388,6 +396,7 @@
 
   async function refreshInner() {
     updateFocusRuntimePrefs();
+    updateContentTintVars();
     syncModePrefsFromBackgroundMode();
     const mode = resolveBackgroundMode();
 
@@ -449,6 +458,9 @@
       }
       if (data === "unfocused_behavior") {
         updateFocusRuntimePrefs();
+      }
+      if (data === "content_tint_color") {
+        updateContentTintVars();
       }
       scheduleRefresh();
     },
@@ -529,6 +541,7 @@
 
   migrateLegacyModePref();
   clearLegacyPrefs();
+  updateContentTintVars();
   syncModePrefsFromBackgroundMode();
   updateFocusRuntimePrefs();
 
